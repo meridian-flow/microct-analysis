@@ -5,15 +5,47 @@ description: Support region-of-interest measurement workflows for preclinical mi
 
 # ROI Measurement
 
-This skill will teach agents how to prepare region-of-interest measurement steps, compose notebook execution with domain artifacts, and preserve measurement provenance for micro-CT analysis notebooks.
+Use this skill after segmentation and landmark/seed picking have produced stable components or landmark candidates. The goal is to define an ROI, let the user inspect or adjust it, run measurement, and preserve provenance.
 
-## Prerequisites
+## Workflow
 
-- `jupyter-workbench`
-- `mouse-ct`
-- `pyvista`
-- `trame`
+1. Attach to the existing review session or open one:
 
-## Not yet implemented
+```bash
+jupyter-workbench open --session-id roi-measurement
+```
 
-Full ROI measurement workflow guidance will be added in later phases.
+2. Load segmentation results, confirmed assignments, and landmark candidates from `mouse_ct.artifacts`. Use stable component/landmark IDs in the ROI name and notes.
+
+3. Define the ROI from landmark positions and segmented masks. Make box dimensions explicit: origin, axes, extents, voxel spacing, and whether the ROI was squared or expanded to a standard margin.
+
+4. Render the 3D scene with:
+   - segmented bone/component actors,
+   - a translucent ROI box or clipped volume,
+   - landmark glyphs and labels,
+   - optional mask overlay for threshold inspection.
+
+5. Register slider callbacks for tunable parameters such as threshold, ROI margin, smoothing, or minimum component size:
+
+```python
+from jupyter_workbench.adapters.visualization.event_log import DurableEventLog
+from jupyter_workbench.adapters.visualization.pyvista_trame import PyVistaTrameHelper
+
+events = DurableEventLog('.jupyter-workbench', 'roi-measurement')
+viz = PyVistaTrameHelper('.jupyter-workbench')
+viz.register_slider_callback('roi-measurement', plotter, events, (0.0, 10.0), 'roi-margin-mm')
+viz.register_slider_callback('roi-measurement', plotter, events, (0.0, 5000.0), 'mask-threshold')
+viz.register_camera_callback('roi-measurement', plotter, events)
+```
+
+6. Poll the event log with a cursor. For slider events, explain the proposed parameter change before rerunning measurement. Example: “Increasing ROI margin includes more proximal cortex but may add adjacent soft tissue.”
+
+7. Run the measurement pipeline stage only after the user accepts the ROI/parameter state. Record inputs: segmentation artifact paths, landmark IDs, ROI geometry, thresholds, and slider values.
+
+8. Report measurements as structured results: value, unit, ROI ID, source component/landmark IDs, parameter set, and artifact paths. If the domain package provides an explanation payload, include its summary and next steps; otherwise write a concise plain-language rationale.
+
+9. Capture screenshots of the final ROI overlay and any user-requested alternate parameter states.
+
+## Corrections
+
+When the user says the ROI is off, do not immediately rerun the full workflow. First identify whether the error is landmark placement, segmentation threshold, ROI geometry, or measurement configuration. Fix the earliest incorrect source, regenerate downstream artifacts, and explain the dependency chain.
