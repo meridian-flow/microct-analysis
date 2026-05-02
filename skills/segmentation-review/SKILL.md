@@ -76,3 +76,11 @@ stage = artifacts.load_stage_summary(output_dir, 'segmentation')
 ```
 
 Use `stage['flags']`, retained/prefiltered counts, masks, labels, and QC image paths in explanations. If a requested helper is named `artifacts.stage_summary()` in older instructions, use the current public equivalent `artifacts.load_stage_summary(output_dir, stage)`.
+
+## Explain-then-apply
+
+- Before ANY threshold, component pruning, mask, or segmentation parameter change, explain in plain language what will change and why it addresses the observed visual issue.
+- Use `microct_analysis.workflows.feedback.translate_visual_feedback()` for non-technical feedback such as “that looks wrong,” “too much noise,” “this area is missing,” or screenshot annotations. Translate the feedback into domain operations before naming parameters.
+- Use `microct_analysis.workflows.explain.explain_correction()` / `correction_code()` when applying accepted corrections so the notebook records the explanation before the code runs.
+- After the change, explain what actually happened: which artifact or component changed, what visual difference to expect, and whether the same stable component IDs were preserved.
+- If translation is uncertain, investigate the current scene, component summary, QC flags, and screenshots first; propose one correction and wait for agreement before applying it.

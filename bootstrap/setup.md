@@ -12,6 +12,15 @@ uv run python -c "import pyvista, trame; print('viz ok')"
 
 If any check fails, stop before running notebooks or skills. Install or link the missing package, then rerun all checks. Do not continue with partial bootstrap state because later notebook failures may look like analysis bugs instead of environment problems.
 
+
+## Explain-then-apply protocol
+
+Every domain correction requires a plain-language explanation before it runs. The explanation must say what will change, why the change addresses the review finding, and which artifact/component/parameter is affected. Use `microct_analysis.workflows.explain.correction_code()` to print and display the explanation before executing correction code, and keep the resulting record in the notebook.
+
+Non-technical feedback is always translated before action. If the user says “that looks wrong,” points at “this area,” or supplies an annotated screenshot, use `microct_analysis.workflows.feedback.translate_visual_feedback()` or `translate_screenshot_feedback()` to convert the observation into inspectable domain operations. Do not require the user to name thresholds, masks, landmarks, or ROI parameters.
+
+The notebook is the decision record. Preserve explanation cells, translated feedback, screenshots, stable component/landmark IDs, and accepted parameter notes so another agent can understand what changed without reopening the live scene.
+
 ## First-wedge workflow examples
 
 Open a segmentation review session:

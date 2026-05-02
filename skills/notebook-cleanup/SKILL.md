@@ -54,3 +54,10 @@ from microct_analysis.notebook_tasks.cleanup import identify_dead_ends, identify
 - Cells containing accepted threshold, component assignment, landmark decision, or measurement explanation payloads.
 - The final artifact manifest load/write cell.
 - User-visible decision summaries, even if the code that produced them was later compacted.
+
+## Explain-then-apply
+
+- Before removing cells, explain what each cell was for and why it can be removed without losing the accepted analysis story.
+- Preserve markdown/display cells that document correction explanations, translated user feedback, `correction_explanations`, screenshots, and review decisions.
+- If a cell contains an explanation but obsolete code, preserve or copy the explanation into the cleanup plan before removing the code cell.
+- When user feedback is non-technical, keep the translated domain operation and plain-language rationale together so later readers understand the decision without replaying the live scene.

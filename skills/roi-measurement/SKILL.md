@@ -49,3 +49,11 @@ viz.register_camera_callback('roi-measurement', plotter, events)
 ## Corrections
 
 When the user says the ROI is off, do not immediately rerun the full workflow. First identify whether the error is landmark placement, segmentation threshold, ROI geometry, or measurement configuration. Fix the earliest incorrect source, regenerate downstream artifacts, and explain the dependency chain.
+
+## Explain-then-apply
+
+- Before changing ROI margin, threshold, smoothing, clipping, or measurement parameters, explain what physical region will grow/shrink or which voxels will be included/excluded.
+- Report measurements in plain language alongside technical values: value, unit, ROI ID, source components/landmarks, and what the value means physically.
+- When a user questions a measurement, translate the concern into the earliest likely source operation: landmark correction, segmentation threshold, ROI geometry, or measurement configuration. Do not require the user to name that parameter.
+- Use `microct_analysis.workflows.explain.explain_correction()` / `correction_code()` for accepted corrections so the notebook records what changed and why before rerunning measurement.
+- After rerun, explain the dependency chain: which upstream artifact changed and which measurement result changed because of it.

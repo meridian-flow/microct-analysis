@@ -77,3 +77,11 @@ print(transition.explanation)
 ```
 
 If `transition.confirmed_assignments` is absent, report the missing required bones and keep the scene open. If present, write landmark candidates and screenshot references to durable artifacts.
+
+## Explain-then-apply
+
+- Before assigning any bone, state the stable component ID, the target bone/structure, and why that component is the intended seed.
+- Use `PickerTransition.explanation` / `explanation_payload` from `handle_event()` and, for explicit reassignment records, `microct_analysis.workflows.explain.explain_assignment_change()` before applying the label change.
+- When the user says “no, that’s the wrong bone” or similar, translate the feedback into a reassignment or `unassigned` operation without requiring the user to name palette keys or technical anatomy parameters.
+- After changing a label, explain which assignment changed, which previous assignment was cleared, and what color/legend change the user should now see.
+- Keep all assignment explanations in the notebook so downstream cleanup preserves the decision trail.
