@@ -30,7 +30,7 @@ Do not require PyVista, trame, a browser, or an active visualization kernel for 
 1. Inspect lineage and snapshot:
 
 ```bash
-jupyter-workbench lineage --session-id <session-id>
+jupyter-workbench lineage <session-id>
 jupyter-workbench snapshot --session-id <session-id>
 ```
 
@@ -59,7 +59,7 @@ from microct_analysis.notebook_tasks.cleanup import identify_dead_ends, identify
 6. Derive a safe cleanup notebook before manual edits or additional cleanup notes:
 
 ```bash
-jupyter-workbench derive --session-id <session-id>
+jupyter-workbench derive <session-id>
 ```
 
 `derive` writes a new derived notebook and leaves the source notebook unchanged.
@@ -67,19 +67,19 @@ jupyter-workbench derive --session-id <session-id>
 7. Compact automatic dead ends:
 
 ```bash
-jupyter-workbench compact --session-id <session-id>
+jupyter-workbench compact <session-id>
 ```
 
 Automatic compaction removes failed code cells that have later successful code cells. For reviewed cell indexes, remove exact cells instead:
 
 ```bash
-jupyter-workbench compact --session-id <session-id> -c 3 -c 5 -c 7
+jupyter-workbench compact <session-id> -c 3 -c 5 -c 7
 ```
 
 8. Verify that the clean notebook still references durable artifacts: manifest, component summary, segmentation summary, landmark candidates, ROI/measurement outputs, screenshots, event summaries, and accepted explanations.
 
 ```bash
-jupyter-workbench lineage --session-id <session-id>
+jupyter-workbench lineage <session-id>
 jupyter-workbench snapshot --session-id <session-id>
 ```
 

@@ -62,7 +62,7 @@ print(shot)
 10. Repeat inspect → poll → explain → adjust → screenshot until the user approves, then close the session.
 
 ```bash
-jupyter-workbench close --session-id seg-review
+jupyter-workbench close seg-review
 ```
 
 ## Artifact inspection

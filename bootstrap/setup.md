@@ -68,7 +68,7 @@ PY
 For cleanup-only work, no live visualization is required:
 
 ```bash
-jupyter-workbench lineage --session-id seg-review
+jupyter-workbench lineage seg-review
 jupyter-workbench snapshot --session-id seg-review
 ```
 

@@ -4,6 +4,9 @@ Caveman style. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed
+- Correct jupyter-workbench CLI examples for positional session commands.
+
 ### Added
 - Real `jupyter-workbench derive` and `compact` cleanup handoff workflow.
 - Explain-then-apply workflow helpers and skill protocol for feedback translation before corrections.
