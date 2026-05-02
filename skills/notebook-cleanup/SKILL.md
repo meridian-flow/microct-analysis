@@ -5,7 +5,19 @@ description: Clean and compact micro-CT analysis notebooks while preserving line
 
 # Notebook Cleanup
 
-Use this skill for cheap post-review cleanup. It does not require an active visualization. Work from durable `jupyter-workbench` lineage, snapshots, screenshots, and mouse-CT artifacts.
+Use this skill for cheap post-review cleanup. It does not require an active visualization. Work from durable `jupyter-workbench` lineage, snapshots, screenshots, event logs, and micro-CT artifacts.
+
+## Handoff contract
+
+The expensive analysis agent owns live review and visualization. Before handoff it should preserve accepted parameters, screenshots, event evidence, artifact manifests, and final explanations in the notebook or durable outputs. It may close the browser/trame session and live runtime resources.
+
+The cleanup agent only needs:
+
+- the session id,
+- the `.jupyter-workbench/` durable root,
+- the `jupyter-workbench` CLI.
+
+Do not require PyVista, trame, a browser, or an active visualization kernel for cleanup. If visualization is degraded or closed, use `snapshot`, lineage, screenshots, and saved artifacts to understand what was done.
 
 ## Goals
 
@@ -22,11 +34,11 @@ jupyter-workbench lineage --session-id <session-id>
 jupyter-workbench snapshot --session-id <session-id>
 ```
 
-2. Read visualization status, recent events, screenshot paths, active scene summary, and artifact references. Do not require the trame browser scene to be live.
+2. Read active notebook path, revisions, derived/compacted notebook history, visualization status, recent events, screenshot paths, active scene summary, and artifact references. Do not require the trame browser scene to be live.
 
 3. Identify cells to keep:
    - final pipeline setup and accepted parameters,
-   - artifact loads/writes from `mouse_ct.artifacts`,
+   - artifact loads/writes from `microct_analysis.artifacts` or project artifact helpers,
    - `PickerTransition` / explanation payload outputs,
    - screenshot capture cells and paths,
    - final measurement report cells,
@@ -44,9 +56,34 @@ jupyter-workbench snapshot --session-id <session-id>
 from microct_analysis.notebook_tasks.cleanup import identify_dead_ends, identify_review_cells
 ```
 
-6. When `jupyter-workbench derive` is implemented, create a clean derived notebook instead of mutating the source notebook in place. Until then, write a cleanup plan listing cells to keep/remove and reasons.
+6. Derive a safe cleanup notebook before manual edits or additional cleanup notes:
 
-7. Verify that the clean notebook still references durable artifacts: manifest, component summary, segmentation summary, landmark candidates, ROI/measurement outputs, and screenshots.
+```bash
+jupyter-workbench derive --session-id <session-id>
+```
+
+`derive` writes a new derived notebook and leaves the source notebook unchanged.
+
+7. Compact automatic dead ends:
+
+```bash
+jupyter-workbench compact --session-id <session-id>
+```
+
+Automatic compaction removes failed code cells that have later successful code cells. For reviewed cell indexes, remove exact cells instead:
+
+```bash
+jupyter-workbench compact --session-id <session-id> -c 3 -c 5 -c 7
+```
+
+8. Verify that the clean notebook still references durable artifacts: manifest, component summary, segmentation summary, landmark candidates, ROI/measurement outputs, screenshots, event summaries, and accepted explanations.
+
+```bash
+jupyter-workbench lineage --session-id <session-id>
+jupyter-workbench snapshot --session-id <session-id>
+```
+
+Confirm the source notebook remains on disk and lineage records the derived/compacted relationship.
 
 ## Never remove
 
