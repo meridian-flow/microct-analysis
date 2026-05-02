@@ -6,6 +6,7 @@ Caveman style. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 - Correct jupyter-workbench CLI examples for positional session commands.
+- `bootstrap/setup.md`: add `Install` section with sibling-repo layout, `uv sync --extra dev`, and `[tool.uv.sources]` explanation; rename prior intro to `Verify environment`.
 
 ### Added
 - Real `jupyter-workbench derive` and `compact` cleanup handoff workflow.
