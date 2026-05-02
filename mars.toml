@@ -1,0 +1,10 @@
+[package]
+name = "microct-analysis"
+version = "0.1.0"
+description = "Domain package for micro-CT analysis workflows using jupyter-workbench"
+
+[package.skills]
+segmentation-review = "skills/segmentation-review/SKILL.md"
+landmark-picking = "skills/landmark-picking/SKILL.md"
+roi-measurement = "skills/roi-measurement/SKILL.md"
+notebook-cleanup = "skills/notebook-cleanup/SKILL.md"
