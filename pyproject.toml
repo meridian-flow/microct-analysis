@@ -21,6 +21,10 @@ build-backend = "hatchling.build"
 [tool.hatch.build.targets.wheel]
 packages = ["src/microct_analysis"]
 
+[tool.uv.sources]
+jupyter-workbench = { path = "../jupyter-workbench", editable = true }
+mouse-ct = { path = "../mouse-ct/mouse_ct", editable = true }
+
 [tool.ruff]
 line-length = 120
 
