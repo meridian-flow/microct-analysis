@@ -1,6 +1,25 @@
 # microct-analysis bootstrap
 
-This package requires the local `jupyter-workbench` and `mouse-ct` packages. Visualization helpers also require the `pyvista` and `trame` stack provided through those dependencies.
+## Install
+
+`microct-analysis` depends on `jupyter-workbench` and `mouse-ct` as editable sibling packages. The expected layout:
+
+```text
+parent/
+  jupyter-workbench/   ← git checkout of jupyter-workbench
+  mouse-ct/            ← git checkout of mouse-ct
+  microct-analysis/    ← this repo
+```
+
+With that layout in place, install from within this repo:
+
+```bash
+uv sync --extra dev
+```
+
+`pyproject.toml` resolves `jupyter-workbench` and `mouse-ct` via `[tool.uv.sources]` relative paths; no manual path edits are needed. If either sibling is missing, `uv sync` will error — clone them first.
+
+## Verify environment
 
 Run these checks after creating or updating the environment:
 
