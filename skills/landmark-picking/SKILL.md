@@ -23,9 +23,10 @@ jupyter-workbench open --session-id landmark-picking
 ```
 
 2. Load component summaries and landmark candidates from `mouse_ct.artifacts`.
-3. Build the scene:
+3. Build the scene in kernel exec code after loading real pipeline artifacts:
 
 ```python
+# Kernel exec code run via `jupyter-workbench exec`.
 from mouse_ct.picker_domain import build_scene, initial_state
 scene = build_scene(
     components=component_objects,
@@ -38,7 +39,7 @@ picker_state = initial_state(scene, initial_assignments)
 components_by_id = {p.component_id: p.component for p in scene.pickables}
 ```
 
-4. Render all pickable components and, when useful, a translucent reference volume. Register pick, key, camera, and optional toggle callbacks with `DurableEventLog` and `PyVistaTrameHelper`.
+4. Render all pickable components and, when useful, a translucent reference volume. Register pick, key, camera, and optional toggle callbacks with `DurableEventLog` and `PyVistaTrameHelper` from kernel exec code only; use `jupyter-workbench` CLI workflows from microct-analysis library code.
 
 ## Interaction loop
 
@@ -51,6 +52,7 @@ components_by_id = {p.component_id: p.component for p in scene.pickables}
 4. Apply the transition:
 
 ```python
+# Kernel exec code run via `jupyter-workbench exec`.
 from mouse_ct.picker_domain import PickerEvent, handle_event
 transition = handle_event(picker_state, event, components_by_id=components_by_id)
 picker_state = transition.state
@@ -68,6 +70,7 @@ Keyboard shortcuts follow `picker_domain.PALETTE_ORDER`: `1` femur, `2` tibia, `
 Validate before saving:
 
 ```python
+# Kernel exec code run via `jupyter-workbench exec`.
 transition = handle_event(
     picker_state,
     PickerEvent(type='confirm_assignments'),

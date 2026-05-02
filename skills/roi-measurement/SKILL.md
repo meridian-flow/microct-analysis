@@ -25,9 +25,10 @@ jupyter-workbench open --session-id roi-measurement
    - landmark glyphs and labels,
    - optional mask overlay for threshold inspection.
 
-5. Register slider callbacks for tunable parameters such as threshold, ROI margin, smoothing, or minimum component size:
+5. Register slider callbacks for tunable parameters such as threshold, ROI margin, smoothing, or minimum component size with kernel exec code only; library workflows should call `jupyter-workbench exec` rather than importing adapters:
 
 ```python
+# Kernel exec code run via `jupyter-workbench exec`, not a microct-analysis library import.
 from jupyter_workbench.adapters.visualization.event_log import DurableEventLog
 from jupyter_workbench.adapters.visualization.pyvista_trame import PyVistaTrameHelper
 

@@ -30,9 +30,30 @@ def translate_visual_feedback(feedback: str, current_stage: str, context: dict[s
     normalized = feedback.strip().lower()
     if _mentions_wrong_bone(normalized):
         component_id = _context_value(context, "component_id", "selected_component_id")
-        target_label = _infer_bone_label(normalized) or _context_value(context, "suggested_label", "active_bone") or "the correct bone"
+        target_label = _valid_bone_label(
+            _infer_bone_label(normalized) or _context_value(context, "suggested_label", "active_bone")
+        )
         old_label = _context_value(context, "old_label", "current_label")
-        operations = [DomainOperation("reassign_component", {"component_id": component_id, "old_label": old_label, "new_label": target_label}, f"Move the selected component from {old_label or 'its current label'} to {target_label}.")]
+        if target_label is None:
+            operations = [
+                DomainOperation(
+                    "inspect_region",
+                    {
+                        "stage": current_stage,
+                        "component_id": component_id,
+                        "region": _context_value(context, "region", "picked_region"),
+                    },
+                    "Inspect the selected component and ask the user which bone it should be before reassigning it.",
+                )
+            ]
+        else:
+            operations = [
+                DomainOperation(
+                    "reassign_component",
+                    {"component_id": component_id, "old_label": old_label, "new_label": target_label},
+                    f"Move the selected component from {old_label or 'its current label'} to {target_label}.",
+                )
+            ]
         intent = "The user is questioning a bone identity assignment."
     elif "missing" in normalized or "gap" in normalized or "hole" in normalized:
         operations = [
@@ -91,4 +112,10 @@ def _infer_bone_label(feedback: str) -> str | None:
     for bone in ("femur", "tibia", "patella", "fibula"):
         if bone in feedback:
             return bone
+    return None
+
+
+def _valid_bone_label(label: Any) -> str | None:
+    if isinstance(label, str) and label.lower() in {"femur", "tibia", "patella", "fibula"}:
+        return label.lower()
     return None

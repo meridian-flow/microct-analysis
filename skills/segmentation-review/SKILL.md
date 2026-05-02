@@ -27,9 +27,10 @@ jupyter-workbench open --session-id seg-review
 
 3. Build the review scene with `mouse_ct.picker_domain.build_scene(...)`. Render each retained component as a color-coded PyVista actor named with its stable component ID. Show rejected/prefiltered components separately or as translucent gray when the review question concerns pruning.
 
-4. Register durable callbacks:
+4. Register durable callbacks with kernel exec code. These adapter imports are valid only inside the jupyter-workbench kernel, not as microct-analysis module-level imports:
 
 ```python
+# Kernel exec code run via `jupyter-workbench exec`, not a microct-analysis library import.
 from jupyter_workbench.adapters.visualization.event_log import DurableEventLog
 from jupyter_workbench.adapters.visualization.pyvista_trame import PyVistaTrameHelper
 
@@ -49,9 +50,10 @@ plotter.show(jupyter_backend='trame')
 
 8. Apply corrections by rerunning the smallest needed pipeline step with adjusted parameters. Rebuild the scene with the same stable IDs where possible, then explain what changed.
 
-9. Capture screenshots at decision points:
+9. Capture screenshots at decision points with kernel exec code:
 
 ```python
+# Kernel exec code run via `jupyter-workbench exec`, not a microct-analysis library import.
 from jupyter_workbench.adapters.visualization.screenshots import capture_screenshot
 shot = capture_screenshot('seg-review', '.jupyter-workbench', 'segmentation-review-1.png', plotter=plotter)
 print(shot)
@@ -65,7 +67,7 @@ jupyter-workbench close --session-id seg-review
 
 ## Artifact inspection
 
-Load durable summaries instead of guessing from visuals:
+Load durable summaries instead of guessing from visuals. This snippet is kernel/notebook code; library code should use public package surfaces only:
 
 ```python
 from mouse_ct import artifacts
