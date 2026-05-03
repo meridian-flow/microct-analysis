@@ -83,10 +83,18 @@ def translate_screenshot_feedback(screenshot_path: str, user_comment: str, curre
     """Translate screenshot-based feedback into operations for the agent to verify visually."""
     context: dict[str, Any] = {"screenshot_path": screenshot_path, "region": "annotated screenshot area"}
     translation = translate_visual_feedback(user_comment or "screenshot annotation", current_stage, context)
-    operations = [
+    operations: list[DomainOperation] = [
         DomainOperation("inspect_screenshot_annotation", {"screenshot_path": screenshot_path, "stage": current_stage}, "Compare the annotated screenshot area with the live scene and durable artifacts."),
         *translation.domain_operations,
     ]
+    if not any(operation.operation_type == "inspect_region" for operation in operations):
+        operations.append(
+            DomainOperation(
+                "inspect_region",
+                {"region": "annotated screenshot area"},
+                "Inspect the marked screenshot region against the live scene before applying the correction.",
+            )
+        )
     intent = f"The user supplied a screenshot to point at a {current_stage} review concern."
     return FeedbackTranslation(user_comment, intent, operations, _translation_explanation(intent, operations))
 

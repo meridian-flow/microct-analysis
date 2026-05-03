@@ -6,10 +6,12 @@ requires-python = ">=3.11"
 dependencies = [
     "jupyter-workbench",
     "mouse-ct",
+    "pyyaml>=6.0.3",
 ]
 
 [project.optional-dependencies]
 dev = [
+    "pytest>=8.0",
     "ruff>=0.11",
     "pyright>=1.1",
 ]

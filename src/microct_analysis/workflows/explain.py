@@ -6,9 +6,6 @@ from dataclasses import dataclass
 from textwrap import dedent
 from typing import Any
 
-from mouse_ct import explanations
-
-
 @dataclass(frozen=True)
 class ExplanationRecord:
     """Record of an explanation before a domain operation."""
@@ -56,23 +53,23 @@ def explain_threshold_change(old_value: float, new_value: float, reason: str) ->
         "lower": "This usually includes fainter bone that may have been clipped or missing.",
         "keep": "The numeric threshold is unchanged; only the review record will be updated.",
     }[direction]
-    payload = explanations.ExplanationPayload(
-        action="threshold-adjustment",
-        summary=what_changed,
-        rationale=(reason, effect),
-        details={"old_value": old_value, "new_value": new_value, "direction": direction},
-    )
-    return ExplanationRecord(what_changed, f"{reason} {effect}", {"explanation_payload": payload.to_dict()})
+    payload = {
+        "action": "threshold-adjustment",
+        "summary": what_changed,
+        "rationale": (reason, effect),
+        "details": {"old_value": old_value, "new_value": new_value, "direction": direction},
+    }
+    return ExplanationRecord(what_changed, f"{reason} {effect}", {"explanation_payload": payload})
 
 
 def explain_assignment_change(component_id: str, old_label: str | None, new_label: str) -> ExplanationRecord:
     """Explain a bone/structure assignment change."""
-    if old_label and old_label != new_label:
-        what_changed = f"Component {component_id} will move from {old_label} to {new_label}."
-        why = "One component can seed only one structure, so changing the label clears the earlier assignment."
-    elif new_label == "unassigned":
+    if new_label == "unassigned":
         what_changed = f"Component {component_id} will be left unassigned."
         why = "It will not be used as a seed for a named bone unless it is selected again."
+    elif old_label and old_label != new_label:
+        what_changed = f"Component {component_id} will move from {old_label} to {new_label}."
+        why = "One component can seed only one structure, so changing the label clears the earlier assignment."
     else:
         what_changed = f"Component {component_id} will be assigned to {new_label}."
         why = "This makes the selected component the seed for that structure in downstream labeling."
@@ -85,15 +82,22 @@ def explain_assignment_change(component_id: str, old_label: str | None, new_labe
 
 def explain_landmark_decision(landmark_name: str, accepted: bool, reason: str) -> ExplanationRecord:
     """Explain a landmark accept/reject decision."""
-    payload = explanations.landmark_decision_explanation(landmark_id=landmark_name, landmark_name=landmark_name, accepted=accepted, reason=reason)
     decision = "accepted" if accepted else "rejected"
-    return ExplanationRecord(f"The {landmark_name} landmark candidate will be {decision}.", payload.to_text(), {"explanation_payload": payload.to_dict()})
+    what_changed = f"The {landmark_name} landmark candidate will be {decision}."
+    why = f"The candidate was {decision} because {reason}"
+    payload = {
+        "action": "landmark-decision",
+        "summary": what_changed,
+        "rationale": (reason,),
+        "details": {"landmark_id": landmark_name, "landmark_name": landmark_name, "accepted": accepted},
+    }
+    return ExplanationRecord(what_changed, why, {"explanation_payload": payload})
 
 
 def correction_code(explanation: ExplanationRecord, exec_code: str) -> str:
     """Wrap domain correction code with a user-visible explanation and notebook record."""
     text = explanation.to_text()
-    return dedent(
+    prelude = dedent(
         f"""
         from IPython.display import Markdown, display
 
@@ -103,10 +107,9 @@ def correction_code(explanation: ExplanationRecord, exec_code: str) -> str:
         print(explanation_text)
         correction_explanations = globals().setdefault('correction_explanations', [])
         correction_explanations.append({{'text': explanation_text, 'context': explanation_context}})
-
-        {exec_code}
         """
     ).strip()
+    return f"{prelude}\n\n{exec_code.strip()}"
 
 
 def _number(value: Any) -> float:

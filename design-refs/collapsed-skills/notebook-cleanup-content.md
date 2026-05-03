@@ -38,7 +38,7 @@ jupyter-workbench snapshot --session-id <session-id>
 
 3. Identify cells to keep:
    - final pipeline setup and accepted parameters,
-   - artifact loads/writes from `microct_analysis.artifacts` or project artifact helpers,
+   - artifact loads/writes from `microct_analysis.domain.artifact_contracts` or project artifact helpers,
    - `PickerTransition` / explanation payload outputs,
    - screenshot capture cells and paths,
    - final measurement report cells,
