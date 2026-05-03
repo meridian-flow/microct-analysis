@@ -2,9 +2,19 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import Any
 
 import yaml
+
+
+@dataclass(frozen=True)
+class FieldProvenance:
+    """Source and confidence metadata for an executable workflow field."""
+
+    source: str
+    confidence: str
+    note: str = ""
 
 
 def parse_frontmatter(content: str) -> tuple[dict[str, Any], str]:
@@ -53,11 +63,25 @@ def extract_landmarks(workflow: dict[str, Any]) -> list[dict[str, Any]]:
     return [item for item in landmarks if isinstance(item, dict)] if isinstance(landmarks, list) else []
 
 
+def extract_roi_definitions(workflow: dict[str, Any]) -> list[dict[str, Any]]:
+    """Extract ROI definitions from parsed workflow data."""
+
+    rois = workflow.get("roi_definitions", [])
+    return [item for item in rois if isinstance(item, dict)] if isinstance(rois, list) else []
+
+
 def extract_measurements(workflow: dict[str, Any]) -> list[dict[str, Any]]:
     """Extract measurement definitions from parsed workflow data."""
 
     measurements = workflow.get("measurements", [])
     return [item for item in measurements if isinstance(item, dict)] if isinstance(measurements, list) else []
+
+
+def extract_orientation_protocol(workflow: dict[str, Any]) -> dict[str, Any]:
+    """Extract the orientation protocol from parsed workflow data."""
+
+    protocol = workflow.get("orientation_protocol", {})
+    return protocol if isinstance(protocol, dict) else {}
 
 
 def extract_acceptance_checks(workflow: dict[str, Any]) -> dict[str, list[dict[str, Any]]]:
@@ -78,3 +102,32 @@ def extract_reference_images(workflow: dict[str, Any]) -> list[dict[str, Any]]:
 
     references = workflow.get("reference_images", [])
     return [item for item in references if isinstance(item, dict)] if isinstance(references, list) else []
+
+
+def extract_sources(workflow: dict[str, Any]) -> list[dict[str, Any]]:
+    """Extract source citation entries from parsed workflow data."""
+
+    sources = workflow.get("sources", [])
+    return [item for item in sources if isinstance(item, dict)] if isinstance(sources, list) else []
+
+
+def extract_field_provenance(workflow: dict[str, Any]) -> dict[str, FieldProvenance]:
+    """Extract field_provenance section into typed objects."""
+
+    provenance = workflow.get("field_provenance", {})
+    if not isinstance(provenance, dict):
+        return {}
+
+    typed: dict[str, FieldProvenance] = {}
+    for field, data in provenance.items():
+        if not isinstance(field, str) or not isinstance(data, dict):
+            continue
+        source = data.get("source", "")
+        confidence = data.get("confidence", "")
+        note = data.get("note", "")
+        typed[field] = FieldProvenance(
+            source=str(source),
+            confidence=str(confidence),
+            note=str(note) if note is not None else "",
+        )
+    return typed

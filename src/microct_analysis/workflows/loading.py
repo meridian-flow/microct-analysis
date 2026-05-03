@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from microct_analysis.workflows.schema import parse_frontmatter
+from microct_analysis.workflows.schema import FieldProvenance, extract_field_provenance, parse_frontmatter
 
 REQUIRED_WORKFLOW_FIELDS = (
     "workflow_id",
@@ -48,7 +48,7 @@ def load_workflow(workflow_path: Path) -> dict[str, Any]:
 
 
 def validate_workflow(workflow_data: dict[str, Any]) -> list[str]:
-    """Validate that a workflow dict has all required sections."""
+    """Validate that a workflow dict has all required executable sections."""
 
     missing: list[str] = []
     for field in REQUIRED_WORKFLOW_FIELDS:
@@ -56,3 +56,13 @@ def validate_workflow(workflow_data: dict[str, Any]) -> list[str]:
         if value is None or value == "" or value == [] or value == {}:
             missing.append(field)
     return missing
+
+
+def get_uncertain_fields(workflow: dict[str, Any]) -> list[tuple[str, FieldProvenance]]:
+    """Return provenance fields requiring user review before first workflow use."""
+
+    uncertain: list[tuple[str, FieldProvenance]] = []
+    for field, provenance in extract_field_provenance(workflow).items():
+        if provenance.confidence in {"medium", "low"} or provenance.source == "inferred":
+            uncertain.append((field, provenance))
+    return uncertain
