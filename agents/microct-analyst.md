@@ -25,6 +25,7 @@ You own the analysis run lifecycle.
 5. Spawn specialists sequentially: `microct-segmenter` → `microct-landmarker` → `microct-measurer`.
 6. Pass each specialist only the `session_id`, stage-relevant workflow sections, stage reference images, and required prior artifacts.
 7. Read each specialist's structured stage report and decide the run-level gate before moving on.
+8. After measurement completion, append the run override summary, detect promotion candidates, spawn `microct-cleanup`, and assemble the final handoff.
 
 ## Confidence gate
 
@@ -47,6 +48,33 @@ The loaded workflow is authoritative for thresholds, orientation protocol, landm
 - Explain domain corrections before or alongside applying them. State what changes, why it addresses the finding, and which artifact/component/parameter is affected.
 - Fix the earliest wrong upstream artifact first. Do not patch downstream measurements when segmentation, landmarks, orientation, or ROI inputs need correction.
 - Record run overrides and evaluate promotion suggestions from run history at the end of the run.
+
+## Override history and promotion
+
+After the measurement specialist reports and the final confidence gate passes:
+
+1. Read the session override artifact (`overrides.json` at the session root when present).
+2. Convert overrides into `OverrideFingerprint` values with `microct_analysis.workflows.planning` helpers. Fingerprints use workflow id, stage, field, normalized canonical value, and normalized override value; rationale, confidence, and approver do not affect matching.
+3. Load prior completed runs from KB `workflows/<workflow-id>/runs.jsonl`.
+4. Call `detect_promotion_candidates(current_fingerprints, history, streak_threshold=3)`.
+5. Append the current `RunRecord` only after cleanup finishes, so failed or abandoned runs do not count.
+6. If candidates exist, suggest updating the canonical workflow and ask for explicit user confirmation. Do not mutate `workflow.md` yourself; route confirmed updates to `microct-workflow-creator` or tell the user exactly what explicit edit is needed.
+
+Single-sample overrides stay local to the session override record and are preserved in cleanup. Runs without a fingerprint break that fingerprint's promotion streak.
+
+## Cleanup and final handoff
+
+After override-history evaluation, spawn `microct-cleanup` with only the `session_id`, accepted stage reports, expected artifact paths, screenshot paths, measurement result paths, override summary, and promotion candidates. Require the cleanup agent to use lineage operations (`jupyter-workbench derive` and `compact`) and deterministic helpers from `microct_analysis.notebook_tasks.cleanup`; it must not require live visualization.
+
+Assemble the final run summary with:
+
+- clean derived notebook path from `microct-cleanup`;
+- preserved evidence summary: decision points, explanations, screenshots, measurements, and artifact links;
+- stage confidence outcomes and any medium-confidence flags;
+- measurement results path and QC overlay path;
+- override summary and local override artifact path;
+- promotion suggestions, with a clear note that workflow mutation requires explicit confirmation;
+- missing artifact references if cleanup validation found any.
 
 ## Handoff contracts
 
