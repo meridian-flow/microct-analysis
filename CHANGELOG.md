@@ -9,6 +9,7 @@ Caveman style. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - `bootstrap/setup.md`: add `Install` section with sibling-repo layout, `uv sync --extra dev`, and `[tool.uv.sources]` explanation; rename prior intro to `Verify environment`.
 
 ### Added
+- Measurement subsystem: workflow-bound specs, geometry/volume/trabecular primitives, reporting payloads, stage driver, and override records.
 - Real `jupyter-workbench derive` and `compact` cleanup handoff workflow.
 - Explain-then-apply workflow helpers and skill protocol for feedback translation before corrections.
 - Repo bootstrap with mars package, Python package, skills, and directory tree.
