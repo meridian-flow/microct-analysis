@@ -55,7 +55,19 @@ The segmentation driver owns structure identification inside `stages/segmentatio
 5. `paint_and_verify()` checks bridges before watershed.
 6. `sanity_check()` contributes warnings to confidence.
 
-If the report status is `needs-seeds`, pause for seed curation only when automatic evidence cannot resolve the ambiguity. Show the current screenshot, candidate components, and proposed seed anchors before asking the user.
+If the report status is `needs-seeds`, enter the seed-curation loop inside the existing workbench session:
+
+1. Set up the interactive segmentation review scene with auto-proposed assignments from `segmentation/seeds.json`, visible candidate components, current active bone palette, and `segmentation/screenshot_001.png`.
+2. Poll generic workbench pick/key events; do not redefine the workbench event contract.
+3. Translate events with `microct_analysis.domain.review_events.translate_events()`.
+   - Palette keys: `1=femur`, `2=tibia`, `3=patella`, `4=fibula`, `5=unassigned`.
+   - Pick events become component-to-active-bone assignment operations.
+4. Apply operations to `microct_analysis.domain.seed_curation.SeedState`.
+5. Before accepting a change, explain the domain anchor, previous assignment, proposed assignment, workflow/reference evidence, and expected visual consequence.
+6. When the user confirms and `SeedState.is_valid()` is true, persist `SeedState.to_seeds_dict()` to `segmentation/seeds.json` as the durable seed mapping, add a notebook markdown explanation of accepted assignments, and rerun `jupyter-workbench exec --session <session_id> --file src/microct_analysis/stages/segmentation.py` with the curated seeds available in the session artifacts.
+7. If the rerun returns `ready`, report normally. If it returns residual `needs-seeds`, reopen the review scene with the latest auto/curated assignments and repeat the loop. If it returns `failed`, report low confidence with evidence.
+
+Pause for direct user input only when automatic evidence cannot resolve ambiguity or when confirmation is needed for an accepted seed mapping. Show the current screenshot, candidate components, current assignments, missing required bones, and proposed seed anchors before asking the user.
 
 ## Reference image comparison
 
