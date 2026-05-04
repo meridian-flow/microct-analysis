@@ -11,26 +11,26 @@ DISALLOWED_PREFIXES = (
     "nbformat",
 )
 
-FORBIDDEN_MOUSE_CT_PREFIXES = (
-    "mouse_ct.picker",
-    "mouse_ct.seed_editor",
-    "mouse_ct.cli",
-    "mouse_ct.qc",
-)
+FORBIDDEN_MOUSE_CT_PREFIX = "mouse_ct"
 
-ALLOWED_STAGE_MOUSE_CT_IMPORTS = {
-    "mouse_ct.io.dicom_load",
-    "mouse_ct.io.calibration",
-    "mouse_ct.io.resample",
-    "mouse_ct.processing.preprocess",
-    "mouse_ct.processing.threshold",
-    "mouse_ct.processing.markers",
-    "mouse_ct.processing.watershed",
-    "mouse_ct.types",
-    "mouse_ct.profiles",
-    "mouse_ct.io.output",
-    "mouse_ct.verify.sanity",
+
+
+PROCESSING_MODULES = {
+    "microct_analysis.processing.calibration",
+    "microct_analysis.processing.dicom",
+    "microct_analysis.processing.io",
+    "microct_analysis.processing.morphology",
+    "microct_analysis.processing.orientation",
+    "microct_analysis.processing.preprocess",
+    "microct_analysis.processing.resample",
+    "microct_analysis.processing.sanity",
+    "microct_analysis.processing.segmentation",
+    "microct_analysis.processing.surface",
+    "microct_analysis.processing.threshold",
+    "microct_analysis.processing.types",
 }
+
+SCIENTIFIC_DEPENDENCIES = ("pydicom", "nibabel", "scipy", "skimage")
 
 ALLOWED_CORE_MODULES = {
     "microct_analysis.__init__",
@@ -78,18 +78,22 @@ def test_module_scope_imports_stay_on_public_interfaces(microct_src: Path) -> No
     assert violations == {}
 
 
-def test_stage_drivers_use_only_public_mouse_ct_surface(microct_src: Path) -> None:
-    stage_root = microct_src / "stages"
+def test_package_has_no_mouse_ct_imports(microct_src: Path) -> None:
     violations: dict[str, list[str]] = {}
 
-    for path in sorted(stage_root.glob("*.py")):
-        bad: list[str] = []
-        for name in _imports(path):
-            if name.startswith(FORBIDDEN_MOUSE_CT_PREFIXES):
-                bad.append(name)
-            elif name.startswith("mouse_ct") and name not in ALLOWED_STAGE_MOUSE_CT_IMPORTS:
-                bad.append(name)
+    for path, module_name in _iter_python_modules(microct_src):
+        bad = [name for name in _imports(path) if name == FORBIDDEN_MOUSE_CT_PREFIX or name.startswith(f"{FORBIDDEN_MOUSE_CT_PREFIX}.")]
         if bad:
-            violations[path.name] = bad
+            violations[module_name] = bad
 
     assert violations == {}
+
+
+def test_processing_modules_can_be_imported() -> None:
+    for module_name in sorted(PROCESSING_MODULES):
+        __import__(module_name)
+
+
+def test_key_scientific_dependencies_are_available() -> None:
+    for module_name in SCIENTIFIC_DEPENDENCIES:
+        __import__(module_name)

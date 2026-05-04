@@ -5,6 +5,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
+from microct_analysis.domain.review_events import SeedAssignmentOp, translate_events
+
 
 KNOWN_BONES = {"femur", "tibia", "patella", "fibula", "unassigned"}
 
@@ -69,3 +71,28 @@ class SeedState:
             if isinstance(bone_label, str) and component_index is not None:
                 state.assign(int(component_index), bone_label)
         return state
+
+
+def apply_seed_operations(state: SeedState, operations: list[SeedAssignmentOp]) -> SeedState:
+    """Apply translated workbench seed-assignment operations to curation state."""
+
+    for operation in operations:
+        state.assign(operation.component_index, operation.bone_label)
+    return state
+
+
+def apply_workbench_events(
+    state: SeedState,
+    events: list[dict[str, Any]],
+    active_bone: str = "femur",
+) -> tuple[SeedState, str, list[SeedAssignmentOp]]:
+    """Translate generic workbench events and apply resulting seed operations.
+
+    The segmentation stage persists stable component label IDs in its
+    structure/seed artifacts. Review events carry those IDs as generic pick
+    payload fields; this helper layers seed-domain meaning on top without
+    changing the upstream event contract.
+    """
+
+    operations, final_active_bone = translate_events(events, active_bone)
+    return apply_seed_operations(state, operations), final_active_bone, operations

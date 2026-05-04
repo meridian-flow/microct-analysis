@@ -5,9 +5,12 @@ description = "Domain helpers for micro-CT analysis workflows"
 requires-python = ">=3.11"
 dependencies = [
     "jupyter-workbench",
-    "mouse-ct",
+    "nibabel>=5.0",
+    "pydicom>=2.4",
+    "scikit-image>=0.22",
     "openpyxl>=3.1.5",
     "pyyaml>=6.0.3",
+    "scipy>=1.17.1",
 ]
 
 [project.optional-dependencies]
@@ -26,7 +29,6 @@ packages = ["src/microct_analysis"]
 
 [tool.uv.sources]
 jupyter-workbench = { path = "../jupyter-workbench", editable = true }
-mouse-ct = { path = "../mouse-ct/mouse_ct", editable = true }
 
 [tool.ruff]
 line-length = 120
@@ -34,3 +36,8 @@ line-length = 120
 [tool.pyright]
 pythonVersion = "3.11"
 typeCheckingMode = "standard"
+
+[dependency-groups]
+dev = [
+    "python-docx>=1.2.0",
+]

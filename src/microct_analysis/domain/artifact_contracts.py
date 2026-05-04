@@ -26,6 +26,13 @@ class LandmarkArtifacts:
 
 
 @dataclass(frozen=True)
+class OrientationArtifacts:
+    transform_matrix: str = "landmarks/transform_matrix.json"
+    oriented_labels: str = "landmarks/oriented_labels.npy"
+    orientation_report: str = "landmarks/orientation_report.md"
+
+
+@dataclass(frozen=True)
 class MeasurementArtifacts:
     results: str = "measurements/results.json"
     qc_overlays: str = "measurements/qc_overlays.json"

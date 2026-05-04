@@ -50,8 +50,9 @@ override promotion.
    to install — do not proceed with degraded behavior. The bootstrap
    doc lists the exact verification command.
 5. Execute the intake stage driver in the anchored session via
-   `jupyter-workbench exec --file`. Confirm `intake/volume_metadata.json`
-   and the intake screenshot land before spawning specialists.
+   `jupyter-workbench exec --file src/microct_analysis/stages/intake.py`.
+   Confirm `intake/volume_metadata.json` and the intake screenshot land
+   before spawning specialists.
 6. Spawn specialists sequentially:
    `microct-segmenter` → `microct-landmarker` → `microct-measurer`. Each
    gets the existing `session_id`, the workflow sections relevant to its

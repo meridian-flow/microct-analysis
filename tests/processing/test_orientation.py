@@ -19,15 +19,20 @@ def _principal_axis(mask: np.ndarray, spacing: tuple[float, ...]) -> np.ndarray:
     return np.abs(axis)
 
 
+def _object_center(mask: np.ndarray, spacing: tuple[float, ...]) -> np.ndarray:
+    positions = np.argwhere(mask != 0).astype(np.float64) * np.asarray(spacing)
+    return (positions.min(axis=0) + positions.max(axis=0)) / 2.0
+
+
 def test_center_volume_computes_translation_for_off_center_object() -> None:
     volume = np.zeros((10, 12, 14), dtype=np.uint8)
     volume[2:5, 4:8, 6:10] = 1
     spacing = (0.5, 1.0, 2.0)
 
-    translation, center = center_volume(volume, spacing)
+    translated, translation = center_volume(volume, spacing)
 
-    np.testing.assert_allclose(center, np.array([1.5, 5.5, 15.0]))
-    np.testing.assert_allclose(translation, np.array([-1.5, -5.5, -15.0]))
+    np.testing.assert_allclose(translation, np.array([0.75, 0.0, -2.0]))
+    np.testing.assert_allclose(_object_center(translated, spacing), np.array([2.25, 5.5, 13.0]), atol=0.25)
 
 
 def test_pca_orient_elongated_ellipsoid_aligns_pc1_with_z() -> None:
@@ -46,6 +51,24 @@ def test_pca_orient_elongated_ellipsoid_aligns_pc1_with_z() -> None:
     pc1 = _principal_axis(oriented_label, spacing)
     assert pc1[0] > 0.95
     np.testing.assert_allclose(rotation @ rotation.T, np.eye(3), atol=1e-12)
+
+
+def test_pca_orient_off_center_elongated_object_centers_and_aligns_pc1_with_z() -> None:
+    spacing = (1.0, 1.0, 1.0)
+    z, y, x = np.indices((41, 41, 41), dtype=np.float64)
+    center = np.array([12.0, 25.0, 14.0])
+    direction = np.array([0.0, 1.0, 1.0]) / np.sqrt(2.0)
+    coords = np.stack((z - center[0], y - center[1], x - center[2]), axis=-1)
+    along = coords @ direction
+    radial = np.sum(coords**2, axis=-1) - along**2
+    label = ((along / 10.0) ** 2 + radial / (2.5**2) <= 1.0).astype(np.uint8)
+    intensity = label.astype(np.float32)
+
+    oriented_label, _, _ = pca_orient(label, intensity, spacing)
+
+    pc1 = _principal_axis(oriented_label, spacing)
+    assert pc1[0] > 0.95
+    np.testing.assert_allclose(_object_center(oriented_label, spacing), np.array([20.0, 20.0, 20.0]), atol=1.0)
 
 
 def test_apply_rotation_preserves_volume_shape() -> None:

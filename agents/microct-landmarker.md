@@ -32,8 +32,9 @@ ROI-specific responsibilities.
   `session_id` is missing, stop and ask.
 - Operate only inside the passed session. Never open a new workbench
   session.
-- Execute the landmark/orientation and ROI stage drivers via
-  `jupyter-workbench exec --file` in the existing session. Short
+- Execute the landmark/orientation and ROI stage work via
+  `jupyter-workbench exec --file src/microct_analysis/stages/landmarks_orientation.py`
+  in the existing session. Short
   inline `exec` snippets are fine for inspection, scene refresh,
   screenshot capture, or markdown logging.
 - Return a structured stage report. Run-level progression is the
@@ -84,6 +85,9 @@ artifacts.
 
 - Use workflow-defined landmark IDs as the authority. Do not invent
   landmarks, protocol distances, or alternate anatomy names.
+- Use the current landmark domain schema:
+  `femoral_3d_surface` for femoral surface landmarks and
+  `tibial_2d_slice` for tibial slice landmarks.
 - Record each accepted landmark in voxel and physical coordinates, tied
   to the stable component or structure it belongs to.
 - Place landmarks on the visible anatomical feature specified by the
@@ -135,3 +139,5 @@ axis-change explanation, and any acceptance check outcomes.
 - ROI execution lives here; the measurer consumes ROI artifacts only.
 - Use only public `jupyter-workbench` CLI and stage drivers. Do not
   import workbench adapters or rewrite stage logic inline.
+- Use `src/microct_analysis/processing/*` orientation and surface
+  primitives through the stage driver.

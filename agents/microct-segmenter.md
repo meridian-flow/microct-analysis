@@ -33,8 +33,8 @@ substages and confounders.
 - Operate only inside the passed session. Never open a new workbench
   session.
 - Execute the segmentation stage driver in the existing session via
-  `jupyter-workbench exec --file`. Short inline `exec` snippets are
-  fine for scene refresh, event polling, screenshot capture, or
+  `jupyter-workbench exec --file src/microct_analysis/stages/segmentation.py`.
+  Short inline `exec` snippets are fine for scene refresh, event polling, screenshot capture, or
   markdown logging.
 - Return a structured stage report. Do not act on run-level confidence;
   that is the analyst's call.
@@ -191,3 +191,5 @@ fine."
 - Use only public `jupyter-workbench` CLI behavior plus the package's
   stage drivers. Do not import workbench adapters or rewrite stage
   logic inline.
+- Use `src/microct_analysis/processing/*` primitives and
+  `microct_analysis.processing.types.SegmentationResult` artifacts.

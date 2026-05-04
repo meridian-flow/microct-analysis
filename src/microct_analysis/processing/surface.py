@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import numpy as np
-from scipy.spatial import cKDTree
+from scipy.spatial import KDTree
 from skimage.measure import marching_cubes
 
 _COORDINATE_COUNT = 3
@@ -50,7 +50,7 @@ def find_saddle_point(vertices: np.ndarray, *, surface_region: str = "anterior_d
     if distal.size == 0:
         raise ValueError("could not identify anterior-distal surface vertices")
 
-    tree = cKDTree(distal)
+    tree = KDTree(distal)
     neighbor_count = min(12, len(distal))
     _distances, neighbor_indices = tree.query(distal, k=neighbor_count)
     if neighbor_count == 1:

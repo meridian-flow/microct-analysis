@@ -3,7 +3,6 @@
 # Public-interface-only dependency rule:
 # This package may import from:
 #   - jupyter_workbench (public services, DTOs, ports)
-#   - mouse_ct (public domain types, pipeline, artifacts, explanations)
 # Generated kernel exec code may use full jupyter_workbench internals since it
 # runs inside the workbench kernel. microct_analysis MODULE-LEVEL imports must
 # stick to the public surface. It must NOT import from:

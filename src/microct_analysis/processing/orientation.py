@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import numpy as np
-from scipy.ndimage import affine_transform
+from scipy.ndimage import affine_transform, shift
 
 
 def _validate_3d(volume: np.ndarray, spacing: tuple[float, ...]) -> np.ndarray:
@@ -17,30 +17,53 @@ def _validate_3d(volume: np.ndarray, spacing: tuple[float, ...]) -> np.ndarray:
     return source
 
 
-def center_volume(
-    volume: np.ndarray, spacing: tuple[float, ...]
-) -> tuple[np.ndarray, np.ndarray]:
-    """Compute bounding-box center translation for non-zero voxels.
-
-    SOP: ``translate = -1 × (LL + UR) / 2``. Coordinates are computed in
-    physical space using ``spacing`` in ``(z, y, x)`` order.
-
-    Returns:
-        ``(translation_vector, center_physical)``. ``translation_vector`` is the
-        physical vector to add to coordinates to center the object on origin.
-    """
-
-    source = _validate_3d(volume, spacing)
+def _object_center_physical(source: np.ndarray, spacing_array: np.ndarray) -> np.ndarray:
     nonzero = np.argwhere(source != 0)
     if nonzero.size == 0:
         raise ValueError("volume must contain at least one non-zero voxel")
 
-    spacing_array = np.asarray(spacing, dtype=np.float64)
     lower_left = nonzero.min(axis=0).astype(np.float64) * spacing_array
     upper_right = nonzero.max(axis=0).astype(np.float64) * spacing_array
-    center_physical = (lower_left + upper_right) / 2.0
-    translation_vector = -center_physical
-    return translation_vector, center_physical
+    return (lower_left + upper_right) / 2.0
+
+
+def _translate_volume(
+    source: np.ndarray,
+    translation_vector: np.ndarray,
+    spacing_array: np.ndarray,
+    order: int,
+) -> np.ndarray:
+    return shift(
+        source,
+        shift=translation_vector / spacing_array,
+        order=order,
+        mode="constant",
+        cval=0,
+        prefilter=order > 1,
+    )
+
+
+def center_volume(
+    volume: np.ndarray, spacing: tuple[float, ...]
+) -> tuple[np.ndarray, np.ndarray]:
+    """Translate non-zero voxels to the center of the output array.
+
+    Coordinates are computed in physical space using ``spacing`` in ``(z, y, x)``
+    order. The returned volume keeps the input shape and spacing.
+
+    Returns:
+        ``(translated_volume, translation_vector)``. ``translation_vector`` is
+        the physical vector added to coordinates to center the object in the
+        output array.
+    """
+
+    source = _validate_3d(volume, spacing)
+    spacing_array = np.asarray(spacing, dtype=np.float64)
+    center_physical = _object_center_physical(source, spacing_array)
+    array_center_physical = (np.asarray(source.shape, dtype=np.float64) - 1.0) / 2.0 * spacing_array
+    translation_vector = array_center_physical - center_physical
+    translated = _translate_volume(source, translation_vector, spacing_array, order=0)
+    return translated.astype(source.dtype, copy=False), translation_vector
 
 
 def pca_orient(
@@ -61,13 +84,16 @@ def pca_orient(
     if labels.shape != intensities.shape:
         raise ValueError("label_mask and intensity must have the same shape")
 
-    _, center_physical = center_volume(labels, spacing)
-    voxel_indices = np.argwhere(labels != 0).astype(np.float64)
+    centered_labels, translation_vector = center_volume(labels, spacing)
+    spacing_array = np.asarray(spacing, dtype=np.float64)
+    centered_intensities = _translate_volume(intensities, translation_vector, spacing_array, order=1)
+
+    voxel_indices = np.argwhere(centered_labels != 0).astype(np.float64)
     if voxel_indices.shape[0] < 3:
         raise ValueError("label_mask must contain at least three non-zero voxels")
 
-    spacing_array = np.asarray(spacing, dtype=np.float64)
     physical_positions = voxel_indices * spacing_array
+    center_physical = (np.asarray(centered_labels.shape, dtype=np.float64) - 1.0) / 2.0 * spacing_array
     centered_positions = physical_positions - center_physical
 
     covariance = np.cov(centered_positions, rowvar=False)
@@ -95,8 +121,8 @@ def pca_orient(
         target_axes[:, 2] *= -1
         rotation = target_axes @ principal_axes.T
 
-    oriented_label = apply_rotation(labels, rotation, order=0, spacing=spacing)
-    oriented_intensity = apply_rotation(intensities, rotation, order=1, spacing=spacing)
+    oriented_label = apply_rotation(centered_labels, rotation, order=0, spacing=spacing)
+    oriented_intensity = apply_rotation(centered_intensities, rotation, order=1, spacing=spacing)
     return oriented_label.astype(labels.dtype, copy=False), oriented_intensity, rotation
 
 
@@ -127,12 +153,12 @@ def apply_rotation(
     # input = R.T @ (output - center) + center.
     matrix = inverse_scale @ rotation_array.T @ scale
     offset_physical = center_physical - rotation_array.T @ center_physical
-    offset = inverse_scale @ offset_physical
+    offset = tuple(float(value) for value in inverse_scale @ offset_physical)
 
     return affine_transform(
         source,
         matrix=matrix,
-        offset=offset,
+        offset=offset,  # pyright: ignore[reportArgumentType] scipy accepts per-axis offsets.
         output_shape=source.shape,
         order=order,
         mode="constant",

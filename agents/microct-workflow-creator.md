@@ -80,6 +80,12 @@ Top-level fields, all required:
 If a value is unknown, include a provisional value and mark its
 provenance inferred. Do not omit required fields.
 
+Landmark entries use the current domain schema. Set `domain:
+femoral_3d_surface` for femoral surface features and `domain:
+tibial_2d_slice` for tibial slice-boundary features. Include the
+geometric method and parameters the stage driver can consume rather than
+free-text-only landmark descriptions.
+
 ### Required prose sections
 
 After frontmatter, include at least:

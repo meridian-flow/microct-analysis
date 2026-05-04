@@ -47,7 +47,8 @@ responsibilities and the per-run override contract.
   inputs. If the ROI looks wrong, raise it as evidence with `low`
   confidence and a recommended pause — do not redefine the ROI yourself.
 - Execute the measurement stage driver via
-  `jupyter-workbench exec --file` in the existing session. Short
+  `jupyter-workbench exec --file src/microct_analysis/stages/measurement.py`
+  in the existing session. Short
   inline `exec` snippets are fine for inspection, scene refresh,
   screenshot capture, or markdown logging.
 
@@ -175,4 +176,7 @@ artifact or ambiguous evidence feeding a metric is `low`.
 
 - Use only public `jupyter-workbench` CLI behavior plus the package's
   stage drivers. Do not import workbench adapters.
+- Use `src/microct_analysis/measurements/*` helpers and accepted
+  artifacts from the package stage drivers; do not reimplement formulas
+  inline.
 - Do not mutate `workflow.md`. Promotion decisions are the analyst's.

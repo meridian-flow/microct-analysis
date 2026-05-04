@@ -3,21 +3,20 @@ from __future__ import annotations
 import ast
 from pathlib import Path
 
-from mouse_ct.types import Component, Thresholds
+from dataclasses import dataclass
 
+from microct_analysis.processing.types import Thresholds
 from microct_analysis.stages import segmentation
 
 
-ALLOWED_MOUSE_CT_IMPORTS = {
-    "mouse_ct.io.calibration",
-    "mouse_ct.io.output",
-    "mouse_ct.processing.markers",
-    "mouse_ct.processing.preprocess",
-    "mouse_ct.processing.threshold",
-    "mouse_ct.processing.watershed",
-    "mouse_ct.types",
-    "mouse_ct.verify.sanity",
-}
+@dataclass(frozen=True)
+class Component:
+    index: int
+    voxel_count: int
+    centroid_zyx: tuple[float, float, float]
+    centroid_mm: tuple[float, float, float]
+    bbox_zyx: tuple[tuple[int, int], tuple[int, int], tuple[int, int]]
+    edge_faces: tuple[str, ...]
 
 
 def _imports(path: Path) -> list[str]:
@@ -31,10 +30,9 @@ def _imports(path: Path) -> list[str]:
     return names
 
 
-def test_segmentation_driver_imports_only_allowed_mouse_ct_surface(microct_src: Path) -> None:
+def test_segmentation_driver_has_no_mouse_ct_imports(microct_src: Path) -> None:
     imports = [name for name in _imports(microct_src / "stages" / "segmentation.py") if name.startswith("mouse_ct")]
-    assert set(imports) <= ALLOWED_MOUSE_CT_IMPORTS
-    assert all(not name.startswith(("mouse_ct.picker", "mouse_ct.seed_editor", "mouse_ct.cli", "mouse_ct.qc")) for name in imports)
+    assert imports == []
 
 
 def test_stage_report_structure(tmp_path: Path) -> None:
@@ -60,7 +58,7 @@ def test_stage_report_structure(tmp_path: Path) -> None:
 
 def test_threshold_comparison_flags_workflow_discrepancy() -> None:
     observations = segmentation.compare_thresholds(
-        Thresholds(mask=240.0, marker=410.0, method="histogram-otsu"),
+        Thresholds(bone_soft_tissue=240, subchondral_cortical=410),
         {"mask": {"value": 200.0}, "marker": {"value": 400.0}, "tolerance_fraction": 0.10},
     )
 

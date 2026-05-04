@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 
 from microct_analysis.workflows.loading import find_workflow, load_workflow, validate_workflow
-from microct_analysis.workflows.schema import parse_frontmatter
+from microct_analysis.workflows.schema import extract_landmarks, parse_frontmatter
 
 
 VALID_FRONTMATTER = """---
@@ -63,3 +63,32 @@ def test_find_workflow_matches_by_workflow_id(tmp_path: Path) -> None:
 
     assert find_workflow("mouse-knee", tmp_path / "workflows") == workflow_path
     assert load_workflow(workflow_path)["study_type"] == "oa"
+
+
+def test_loading_accepts_current_landmark_domain_schema() -> None:
+    workflow, _body = parse_frontmatter(
+        """---
+workflow_id: mouse-knee
+thresholds: {bone: 220}
+landmarks:
+  - id: intercondylar_groove_midpoint
+    structure: femur
+    domain: femoral_3d_surface
+    geometric_method: saddle_point
+  - id: growth_plate_proximal
+    structure: tibia
+    domain: tibial_2d_slice
+    geometric_method: slice_boundary
+roi_definitions: [{name: tibial_roi}]
+measurements: [{name: width, kind: distance}]
+orientation_protocol: {target_plane: frontal}
+acceptance_checks: {landmarks: []}
+sources: [{citation: fixture}]
+---
+# Body
+"""
+    )
+
+    landmarks = extract_landmarks(workflow)
+
+    assert [item["domain"] for item in landmarks] == ["femoral_3d_surface", "tibial_2d_slice"]

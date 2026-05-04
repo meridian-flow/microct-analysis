@@ -7,6 +7,7 @@ from dataclasses import asdict
 from pathlib import Path
 from typing import Any
 
+import nibabel as nib
 import numpy as np
 
 from microct_analysis.domain.artifact_contracts import screenshot_path
@@ -175,6 +176,8 @@ def _load_array(path: str | None) -> np.ndarray | None:
         return data[data.files[0]]
     if file_path.suffix == ".json":
         return np.asarray(json.loads(file_path.read_text(encoding="utf-8")))
+    if file_path.name.endswith((".nii", ".nii.gz")):
+        return np.asarray(nib.load(str(file_path)).get_fdata())
     return None
 
 

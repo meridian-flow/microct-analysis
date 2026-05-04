@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from microct_analysis.domain.seed_curation import SeedState
+from microct_analysis.domain.seed_curation import SeedState, apply_workbench_events
 
 
 def test_seed_state_requires_femur_and_tibia_by_default() -> None:
@@ -73,3 +73,21 @@ def test_seed_state_rejects_unknown_bone_and_negative_component() -> None:
         state.assign(1, "talus")
     with pytest.raises(ValueError, match="component_index"):
         state.assign(-1, "femur")
+
+
+def test_workbench_events_assign_stable_segmentation_component_labels() -> None:
+    state = SeedState()
+
+    updated, active_bone, operations = apply_workbench_events(
+        state,
+        [
+            {"type": "pick", "payload": {"component_index": 7}},
+            {"type": "key", "key": "2"},
+            {"type": "pick", "payload": {"component_id": 8}},
+        ],
+    )
+
+    assert active_bone == "tibia"
+    assert [(op.component_index, op.bone_label) for op in operations] == [(7, "femur"), (8, "tibia")]
+    assert updated.assignments == {7: "femur", 8: "tibia"}
+    assert updated.to_seeds_dict()["status"] == "ready"

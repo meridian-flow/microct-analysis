@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import numpy as np
 import pydicom
@@ -73,7 +73,8 @@ def _slice_spacing(datasets: list[FileDataset]) -> float:
     if len(datasets) > 1:
         positions = [getattr(ds, "ImagePositionPatient", None) for ds in datasets]
         if all(position is not None and len(position) >= 3 for position in positions):
-            deltas = np.diff([float(position[2]) for position in positions])
+            valid_positions = cast(list[list[float] | tuple[float, float, float]], positions)
+            deltas = np.diff([float(position[2]) for position in valid_positions])
             nonzero = np.abs(deltas[np.nonzero(deltas)])
             if nonzero.size:
                 return float(np.median(nonzero))

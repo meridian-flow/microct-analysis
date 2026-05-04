@@ -2,12 +2,11 @@
 
 ## Install
 
-`microct-analysis` depends on `jupyter-workbench` and `mouse-ct` as editable sibling packages. The expected layout:
+`microct-analysis` depends on `jupyter-workbench` as an editable sibling package. The expected layout:
 
 ```text
 parent/
   jupyter-workbench/   ← git checkout of jupyter-workbench
-  mouse-ct/            ← git checkout of mouse-ct
   microct-analysis/    ← this repo
 ```
 
@@ -17,7 +16,7 @@ With that layout in place, install from within this repo:
 uv sync --extra dev
 ```
 
-`pyproject.toml` resolves `jupyter-workbench` and `mouse-ct` via `[tool.uv.sources]` relative paths; no manual path edits are needed. If either sibling is missing, `uv sync` will error — clone it first.
+`pyproject.toml` resolves `jupyter-workbench` via `[tool.uv.sources]` relative paths; no manual path edits are needed. If the sibling is missing, `uv sync` will error — clone it first. Processing is self-contained in `microct_analysis.processing` and no longer imports `mouse-ct`.
 
 ## Verify environment
 
@@ -25,13 +24,13 @@ Run these checks after creating or updating the environment:
 
 ```bash
 uv run python -c "from jupyter_workbench import SessionService, ExecutionService, SnapshotService; print('workbench ok')"
-uv run python -c "import microct_analysis; import mouse_ct; import SimpleITK; import skimage; import scipy; import pyvista; import trame; print('analysis runtime ok')"
+uv run python -c "import microct_analysis; import pydicom; import nibabel; import numpy; import scipy; import skimage; import pyvista; import trame; print('analysis runtime ok')"
 ```
 
 At session open, verify the workbench kernel can import the same runtime dependencies before spawning specialists:
 
 ```bash
-jupyter-workbench exec "import microct_analysis; import mouse_ct; import SimpleITK; import skimage; import scipy; import pyvista; import trame; print('analysis runtime ok')"
+jupyter-workbench exec "import microct_analysis; import pydicom; import nibabel; import numpy; import scipy; import skimage; import pyvista; import trame; print('analysis runtime ok')"
 ```
 
 If any check fails, stop before running notebooks or skills. Install or link the missing package, then rerun all checks. Do not continue with partial bootstrap state because later notebook failures may look like analysis bugs instead of environment problems.
@@ -42,10 +41,11 @@ If any check fails, stop before running notebooks or skills. Install or link the
 - Artifact handoff paths: `microct_analysis.domain.artifact_contracts`
 - Workflow loading and validation: `microct_analysis.workflows.loading` and `microct_analysis.workflows.schema`
 - Intake stage driver: `microct_analysis.stages.intake`
+- Processing primitives: `microct_analysis.processing.{dicom,calibration,preprocess,threshold,segmentation,io,sanity,resample,orientation,surface,morphology}`
 - Explain-then-apply helpers: `microct_analysis.workflows.explain`
 - Plain-language feedback translation: `microct_analysis.workflows.feedback`
 
-Stage drivers are executed through `jupyter-workbench exec --file` and may import only public `mouse_ct` APIs. They must not import `jupyter_workbench.adapters.*` or internal `mouse_ct` modules.
+Stage drivers are executed through `jupyter-workbench exec --file` and may import only public `microct_analysis.processing` APIs. They must not import `jupyter_workbench.adapters.*`, internal workbench modules, or `mouse_ct` modules.
 
 ## Explain-then-apply protocol
 

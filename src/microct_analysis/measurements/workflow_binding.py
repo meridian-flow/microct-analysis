@@ -34,10 +34,10 @@ def compile_measurement_specs(workflow: dict[str, Any]) -> list[MeasurementSpec]
         specs.append(
             MeasurementSpec(
                 name=name,
-                kind=kind,
+                kind=_bound_kind(item, kind),
                 domain=_optional_domain(item),
                 frame=_optional_str(item, "frame"),
-                projection=_optional_str(item, "projection"),
+                projection=_optional_str(item, "projection") or _default_projection(item, kind),
                 points=_optional_str_list(item, "points"),
                 boundaries=_optional_str_list(item, "boundaries"),
                 slice_selection=_optional_str(item, "slice_selection"),
@@ -85,3 +85,21 @@ def _optional_str_list(item: dict[str, Any], field: str) -> list[str] | None:
     if not isinstance(value, list):
         raise ValueError(f"measurement field {field!r} must be a list")
     return [str(entry) for entry in value]
+
+
+def _bound_kind(item: dict[str, Any], kind: str) -> str:
+    """Return the executable primitive kind for a workflow measurement row."""
+
+    method = _optional_str(item, "method")
+    if kind == "surface_distance" and method == "frontal_projected":
+        return "frontal_projected_width"
+    return kind
+
+
+def _default_projection(item: dict[str, Any], kind: str) -> str | None:
+    """Infer projection for workflow rows whose method encodes the projection."""
+
+    method = _optional_str(item, "method")
+    if kind == "surface_distance" and method == "frontal_projected":
+        return "frontal"
+    return None
