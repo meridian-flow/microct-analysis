@@ -319,7 +319,7 @@ measurements:
   # --- Tibial domain: 2D oriented slice measurements ---
   - name: tibial_iioc_height
     domain: tibial_2d_slice
-    kind: slice_count
+    kind: boundary_slice_count
     method: boundary_slice_count
     boundaries: [articular_surface_proximal, growth_plate_proximal]
     slice_thickness_mm: 0.0105

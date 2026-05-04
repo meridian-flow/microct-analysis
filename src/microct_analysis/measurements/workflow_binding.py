@@ -8,7 +8,17 @@ from microct_analysis.workflows.schema import extract_measurements
 
 from .models import MeasurementSpec
 
-_ALLOWED_KINDS = {"distance", "ratio", "slice_count", "volume", "roi_stat"}
+_ALLOWED_KINDS = {
+    "distance",
+    "surface_distance",
+    "slice_distance",
+    "ratio",
+    "slice_count",
+    "boundary_slice_count",
+    "volume",
+    "roi_stat",
+}
+_ALLOWED_DOMAINS = {"femoral_3d_surface", "tibial_2d_slice", "derived", "trabecular_roi"}
 
 
 def compile_measurement_specs(workflow: dict[str, Any]) -> list[MeasurementSpec]:
@@ -24,6 +34,7 @@ def compile_measurement_specs(workflow: dict[str, Any]) -> list[MeasurementSpec]
             MeasurementSpec(
                 name=name,
                 kind=kind,
+                domain=_optional_domain(item),
                 frame=_optional_str(item, "frame"),
                 projection=_optional_str(item, "projection"),
                 points=_optional_str_list(item, "points"),
@@ -50,6 +61,14 @@ def _required_str(item: dict[str, Any], field: str) -> str:
 def _optional_str(item: dict[str, Any], field: str) -> str | None:
     value = item.get(field)
     return str(value) if value is not None else None
+
+
+def _optional_domain(item: dict[str, Any]) -> str | None:
+    value = _optional_str(item, "domain")
+    if value is not None and value not in _ALLOWED_DOMAINS:
+        name = item.get("name", "<unknown>")
+        raise ValueError(f"unsupported measurement domain for {name}: {value}")
+    return value
 
 
 def _optional_str_list(item: dict[str, Any], field: str) -> list[str] | None:

@@ -9,6 +9,13 @@ from typing import Any
 import numpy as np
 
 from microct_analysis.domain.artifact_contracts import screenshot_path
+from microct_analysis.processing.surface import (
+    extract_surface_mesh,
+    find_condylar_edge,
+    find_notch_depth,
+    find_saddle_point,
+)
+from microct_analysis.processing.types import LabelVolume
 
 _AXIS_NAMES = {0: "superior-inferior", 1: "anterior-posterior", 2: "medial-lateral"}
 
@@ -100,39 +107,166 @@ def _compute_landmark(
     definition: dict[str, Any], labels: np.ndarray | None, assignments: dict[str, Any], spacing: tuple[float, float, float]
 ) -> dict[str, Any]:
     landmark_id = str(definition.get("id") or definition.get("name"))
-    structure = str(definition.get("structure") or definition.get("target_structure") or "")
-    method = str(definition.get("method", "centroid"))
+    structure = str(definition.get("structure") or definition.get("target_structure") or definition.get("bone") or "")
+    method = str(definition.get("geometric_method") or definition.get("method", "centroid"))
+    domain = str(definition.get("domain", ""))
     label_value = _label_for_structure(structure, assignments, definition)
-    voxel = _position_from_definition(definition, labels, label_value, method)
+    voxel, confidence, note = _position_from_definition(definition, labels, label_value, spacing, method)
     physical = tuple(float(voxel[index]) * spacing[index] for index in range(3))
     return {
         "id": landmark_id,
         "structure": structure,
+        "domain": domain or None,
         "method": method,
         "label": label_value,
         "voxel": [float(value) for value in voxel],
         "physical": [float(value) for value in physical],
-        "confidence": "high" if labels is not None or "voxel" in definition or "physical" in definition else "medium",
+        "confidence": confidence,
+        "requires_user_confirmation": confidence == "low",
+        "evidence": note,
     }
 
 
 def _position_from_definition(
-    definition: dict[str, Any], labels: np.ndarray | None, label_value: int | None, method: str
-) -> tuple[float, float, float]:
+    definition: dict[str, Any],
+    labels: np.ndarray | None,
+    label_value: int | None,
+    spacing: tuple[float, float, float],
+    method: str,
+) -> tuple[tuple[float, float, float], str, str]:
     if "voxel" in definition:
-        return _triple(definition["voxel"])
+        return _triple(definition["voxel"]), "high", "landmark provided explicit voxel coordinates"
     if "physical" in definition:
-        return _triple(definition["physical"])
+        physical = _triple(definition["physical"])
+        return tuple(physical[index] / spacing[index] for index in range(3)), "high", "landmark provided explicit physical coordinates"
     if labels is None or label_value is None:
-        return (0.0, 0.0, 0.0)
-    coords = np.argwhere(labels == label_value)
+        return (0.0, 0.0, 0.0), "medium", "missing label volume or structure label; used origin fallback"
+
+    domain = str(definition.get("domain", ""))
+    mask = labels == label_value
+    if domain == "femoral_3d_surface":
+        return _femoral_surface_position(definition, mask, spacing, method)
+    if domain == "tibial_2d_slice":
+        return _tibial_slice_position(definition, mask, spacing, method)
+
+    return _centroid_fallback(mask, method, "legacy label-statistic landmark")
+
+
+def _femoral_surface_position(
+    definition: dict[str, Any], mask: np.ndarray, spacing: tuple[float, float, float], method: str
+) -> tuple[tuple[float, float, float], str, str]:
+    try:
+        vertices, _faces = extract_surface_mesh(mask, spacing)
+        label_volume = LabelVolume(data=mask.astype(np.uint8), spacing=spacing, label_map={"foreground": 1})
+        if len(vertices) < 4:
+            raise ValueError("surface mesh has too few vertices")
+        landmark_id = str(definition.get("id") or definition.get("name"))
+        params = definition.get("geometric_params") if isinstance(definition.get("geometric_params"), dict) else {}
+        if method == "saddle_point" or landmark_id == "intercondylar_groove_midpoint":
+            point = find_saddle_point(vertices, surface_region=str(params.get("surface_region", "anterior_distal")))
+        elif method == "notch_depth_maximum" or landmark_id == "intercondylar_notch":
+            point = find_notch_depth(vertices)
+        elif method == "surface_extreme" or landmark_id in {"lateral_condylar_edge", "medial_condylar_edge"}:
+            direction = str(params.get("direction") or ("lateral" if "lateral" in landmark_id else "medial"))
+            point = find_condylar_edge(vertices, direction, include_osteophytes=bool(params.get("include_osteophytes", True)))
+        else:
+            raise ValueError(f"unsupported femoral surface landmark method: {method}")
+        voxel = tuple(float(point[index]) / label_volume.spacing[index] for index in range(3))
+        return voxel, "high", f"surface feature detected from {len(vertices)} mesh vertices"
+    except Exception as exc:
+        voxel, _confidence, _note = _centroid_fallback(mask, method, f"surface detection failed: {exc}")
+        return voxel, "low", f"surface detection failed; centroid/extrema fallback used: {exc}"
+
+
+def _tibial_slice_position(
+    definition: dict[str, Any], mask: np.ndarray, spacing: tuple[float, float, float], method: str
+) -> tuple[tuple[float, float, float], str, str]:
+    coords = np.argwhere(mask)
     if coords.size == 0:
-        return (0.0, 0.0, 0.0)
+        return (0.0, 0.0, 0.0), "low", "tibia label has no foreground voxels"
+    counts = mask.reshape(mask.shape[0], -1).sum(axis=1)
+    landmark_id = str(definition.get("id") or definition.get("name"))
+    params = definition.get("geometric_params") if isinstance(definition.get("geometric_params"), dict) else {}
+    articular = _articular_slice(counts, float(params.get("area_threshold_pct", 20)))
+    growth = _growth_plate_slice(mask, counts, articular, params)
+    measurement_slice = _measurement_slice(mask, articular, growth)
+    if landmark_id == "articular_surface_proximal" or params.get("surface") == "articular":
+        z_index = articular
+        return _slice_center(mask, z_index), "high", f"articular boundary at slice {z_index}"
+    if landmark_id == "growth_plate_proximal" or params.get("detection") == "bone_fill_ratio_drop":
+        confidence = "high" if growth is not None else "low"
+        z_index = growth if growth is not None else int(coords[:, 0].max())
+        return _slice_center(mask, z_index), confidence, f"growth plate boundary at slice {z_index}; proximal tie-break applied"
+    if method == "slice_bone_extent" or landmark_id in {"medial_tibial_condyle_edge", "lateral_tibial_condyle_edge"}:
+        direction = str(params.get("direction") or ("lateral" if "lateral" in landmark_id else "medial"))
+        return _slice_edge(mask, measurement_slice, direction), "high", f"{direction} tibial edge on measurement slice {measurement_slice}"
+    return _centroid_fallback(mask, method, "unsupported tibial slice landmark fallback")
+
+
+def _centroid_fallback(mask: np.ndarray, method: str, note: str) -> tuple[tuple[float, float, float], str, str]:
+    coords = np.argwhere(mask)
+    if coords.size == 0:
+        return (0.0, 0.0, 0.0), "low", f"{note}; empty structure mask"
     if method in {"superior", "proximal"}:
-        return _triple(coords[np.argmin(coords[:, 0])])
+        return _triple(coords[np.argmin(coords[:, 0])]), "high", note
     if method in {"inferior", "distal", "growth_plate"}:
-        return _triple(coords[np.argmax(coords[:, 0])])
-    return _triple(coords.mean(axis=0))
+        return _triple(coords[np.argmax(coords[:, 0])]), "high", note
+    return _triple(coords.mean(axis=0)), "high", note
+
+
+def _articular_slice(counts: np.ndarray, threshold_pct: float) -> int:
+    nonzero = np.flatnonzero(counts)
+    if nonzero.size == 0:
+        return 0
+    threshold = max(float(counts.max()) * (threshold_pct / 100.0), 1.0)
+    candidates = np.flatnonzero(counts >= threshold)
+    return int(candidates[0]) if candidates.size else int(nonzero[0])
+
+
+def _growth_plate_slice(mask: np.ndarray, counts: np.ndarray, articular: int, params: dict[str, Any]) -> int | None:
+    min_consecutive = int(params.get("min_consecutive_above", 5))
+    # Label-only fallback: first pronounced area drop after a stable tibial plateau.
+    max_count = float(counts.max())
+    if max_count == 0:
+        return None
+    above_seen = 0
+    drop_threshold = max_count * 0.5
+    candidates: list[int] = []
+    for z_index in range(articular, len(counts)):
+        if counts[z_index] >= drop_threshold:
+            above_seen += 1
+            continue
+        if above_seen >= min_consecutive and counts[z_index] > 0:
+            candidates.append(z_index)
+    return min(candidates) if candidates else None
+
+
+def _measurement_slice(mask: np.ndarray, articular: int, growth: int | None) -> int:
+    stop = growth if growth is not None else mask.shape[0] - 1
+    start, stop = sorted((max(0, articular), min(mask.shape[0] - 1, stop)))
+    areas = mask.reshape(mask.shape[0], -1).sum(axis=1)
+    region = np.arange(start, stop + 1)
+    max_area = int(areas[region].max()) if region.size else 0
+    tied = region[areas[region] >= max_area - 2]
+    return int(tied[-1]) if tied.size else start
+
+
+def _slice_center(mask: np.ndarray, z_index: int) -> tuple[float, float, float]:
+    coords = np.argwhere(mask[z_index])
+    if coords.size == 0:
+        all_coords = np.argwhere(mask)
+        yx = all_coords[:, 1:].mean(axis=0)
+    else:
+        yx = coords.mean(axis=0)
+    return (float(z_index), float(yx[0]), float(yx[1]))
+
+
+def _slice_edge(mask: np.ndarray, z_index: int, direction: str) -> tuple[float, float, float]:
+    coords = np.argwhere(mask[z_index])
+    if coords.size == 0:
+        return _slice_center(mask, z_index)
+    edge = coords[np.argmax(coords[:, 1])] if direction == "lateral" else coords[np.argmin(coords[:, 1])]
+    return (float(z_index), float(edge[0]), float(edge[1]))
 
 
 def _axis_vector(spec: Any, landmarks: dict[str, np.ndarray]) -> np.ndarray:
@@ -207,7 +341,8 @@ def _label_for_structure(structure: str, assignments: dict[str, Any], definition
     if "label" in definition:
         return int(definition["label"])
     mapping = assignments.get("assignments", assignments)
-    value = mapping.get(structure) if isinstance(mapping, dict) else None
+    lookup = structure or str(definition.get("bone") or "")
+    value = mapping.get(lookup) if isinstance(mapping, dict) else None
     return int(value) if isinstance(value, int | float | str) and str(value).lstrip("-").isdigit() else None
 
 

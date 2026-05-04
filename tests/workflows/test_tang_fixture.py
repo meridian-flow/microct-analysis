@@ -31,9 +31,14 @@ def test_tang_workflow_fixture_validates() -> None:
         "intercondylar_notch",
         "lateral_condylar_edge",
         "medial_condylar_edge",
-        "tibial_plateau_midpoint",
-        "epiphyseal_line",
+        "articular_surface_proximal",
+        "growth_plate_proximal",
+        "medial_tibial_condyle_edge",
+        "lateral_tibial_condyle_edge",
     }
+    landmark_domains = {landmark["name"]: landmark["domain"] for landmark in extract_landmarks(workflow)}
+    assert landmark_domains["intercondylar_groove_midpoint"] == "femoral_3d_surface"
+    assert landmark_domains["articular_surface_proximal"] == "tibial_2d_slice"
 
     measurement_names = {measurement["name"] for measurement in extract_measurements(workflow)}
     assert measurement_names == {
@@ -43,12 +48,12 @@ def test_tang_workflow_fixture_validates() -> None:
         "tibial_iioc_height",
         "tibial_width",
         "tibial_iioc_ratio",
+        "medial_trabecular_morphometry",
+        "lateral_trabecular_morphometry",
+        "total_iioc_bone_volume",
     }
 
     checks = extract_acceptance_checks(workflow)
     assert set(checks) == {"segmentation", "landmarks", "roi", "measurement"}
 
-    uncertain = dict(get_uncertain_fields(workflow))
-    assert set(uncertain) == {"roi_definitions"}
-    assert uncertain["roi_definitions"].source == "inferred"
-    assert uncertain["roi_definitions"].confidence == "medium"
+    assert get_uncertain_fields(workflow) == []

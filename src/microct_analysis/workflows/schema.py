@@ -7,6 +7,8 @@ from typing import Any
 
 import yaml
 
+LANDMARK_DOMAINS = {"femoral_3d_surface", "tibial_2d_slice"}
+
 
 @dataclass(frozen=True)
 class FieldProvenance:
@@ -60,7 +62,17 @@ def extract_landmarks(workflow: dict[str, Any]) -> list[dict[str, Any]]:
     """Extract landmark definitions from parsed workflow data."""
 
     landmarks = workflow.get("landmarks", [])
-    return [item for item in landmarks if isinstance(item, dict)] if isinstance(landmarks, list) else []
+    return [_normalize_landmark(item) for item in landmarks if isinstance(item, dict)] if isinstance(landmarks, list) else []
+
+
+def _normalize_landmark(item: dict[str, Any]) -> dict[str, Any]:
+    """Return a landmark mapping with validated optional domain metadata."""
+
+    domain = item.get("domain")
+    if domain is not None and str(domain) not in LANDMARK_DOMAINS:
+        name = item.get("id") or item.get("name") or "<unknown>"
+        raise ValueError(f"unsupported landmark domain for {name}: {domain}")
+    return item
 
 
 def extract_roi_definitions(workflow: dict[str, Any]) -> list[dict[str, Any]]:

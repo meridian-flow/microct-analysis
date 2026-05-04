@@ -12,6 +12,7 @@ class MeasurementSpec:
 
     name: str
     kind: str
+    domain: str | None = None
     frame: str | None = None
     projection: str | None = None
     points: list[str] | None = None
