@@ -6,6 +6,7 @@ requires-python = ">=3.11"
 dependencies = [
     "jupyter-workbench",
     "mouse-ct",
+    "openpyxl>=3.1.5",
     "pyyaml>=6.0.3",
 ]
 

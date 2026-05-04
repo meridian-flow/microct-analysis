@@ -5,8 +5,14 @@ Caveman style. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Changed
+- LLM writing quality pass across all agents and skill: collapsed repeated mct-visual-review recaps into one-line bridge sentences, deduplicated boundary rules that appeared in both operating contract and boundaries sections, split clause-heavy instruction blocks (analyst override matching, segmenter event-log translation, measurer upstream inputs, workflow-creator frontmatter list) into sub-bullets or tables, unified workflow-selection contract in analyst (analyst resolves from KB), replaced meta/governance phrasing with direct task language, normalized register (removed "The user talks to you", "Keep it anchored — alive —"), clarified "proceed silently" → "continue without pausing for review", replaced soft cleanup input labels ("keep/remove guidance", "final summary notes") with explicit artifact manifest table.
 - Correct jupyter-workbench CLI examples for positional session commands.
 - `bootstrap/setup.md`: add `Install` section with sibling-repo layout, `uv sync --extra dev`, and `[tool.uv.sources]` explanation; rename prior intro to `Verify environment`.
+- `microct-analyst`: reframed description around the user-facing job (run an analysis) instead of "orchestrator" identity. Added an explicit workflow readiness gate — analyst will not pass a workflow with unresolved inferred or low/medium-confidence executable fields to specialists until the user reviews them.
+- `microct-landmarker`: now the sole owner of ROI execution alongside landmarks and orientation. Added ROI artifacts (`roi_definitions`, `roi_masks`) to the stage report.
+- `microct-measurer`: no longer runs the ROI stage driver. Consumes ROI artifacts from the landmarker; surfaces wrong ROI as evidence with a recommended pause instead of redefining it.
+- `mct-visual-review` skill: now owns the generic semi-HITL policy shared across specialists — confidence semantics, explain-then-apply, plain-language feedback translation, reference image comparison, screenshot conventions, earliest-wrong-input correction, and the structured stage report shape. Removed duplicated policy from agent bodies.
+- All agent bodies: stripped hardcoded Python helper module/function names and key bindings. Prompts stay at behavior boundaries (inputs, allowed tools, required outputs, escalation conditions). Stage names normalized to `segmentation`, `landmarks`, `measurements` across all stage reports.
 
 ### Added
 - Measurement subsystem: workflow-bound specs, geometry/volume/trabecular primitives, reporting payloads, stage driver, and override records.
