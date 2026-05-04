@@ -15,7 +15,52 @@ Generic semi-HITL review loop shared by every micro-CT analysis specialist.
 Stage-specific anatomy, protocol constants, and execution sequence come from
 the specialist agent and the workflow file.
 
-## Confidence assignment
+## Mechanics
+
+### Screenshot capture
+
+- Capture screenshots at decision points: stage completion, before/after
+  corrections, ambiguity surfaces, and low-confidence pauses.
+- Path convention: `<stage>/screenshot_<NNN>.png` with zero-padded NNN
+  incrementing within the stage. Stage names are the canonical short
+  identifiers (`segmentation`, `landmarks`, `measurements`).
+- Reference screenshots in the stage report's `artifacts.screenshots`
+  list.
+
+### Event polling
+
+- Poll the workbench event log from a caller-owned cursor so each event is
+  processed once.
+- Translate generic UI events into the specialist's domain operations;
+  do not redefine the event contract inside a specialist.
+- Resolve visual selections through stable component, landmark, ROI, or
+  measurement IDs from artifacts rather than actor order or color alone.
+
+### Scene refresh
+
+- After each accepted correction, rerun the smallest pipeline step needed
+  and refresh only the affected scene state.
+- Preserve stable IDs where possible so before/after explanations remain
+  traceable.
+- Summarize what changed and what the reviewer should now see in the
+  refreshed scene.
+
+### Reference image comparison
+
+Each stage has reference images attached to the workflow. Use them — do
+not rely on memory or general anatomy knowledge when a workflow reference
+exists.
+
+- Load only the stage-relevant references the analyst passed.
+- Compare the current scene or screenshot against each reference for the
+  visual checks the workflow defines (component count, anatomical
+  separation, edge quality, label placement, ROI position).
+- Record comparison observations in plain language in the stage report.
+- A reference mismatch is confidence evidence, not a silent override.
+
+## Policy
+
+### Confidence assignment
 
 Every stage ends with a confidence rating that drives the analyst's gate.
 
@@ -33,7 +78,7 @@ Every stage ends with a confidence rating that drives the analyst's gate.
 Specialists assign stage confidence and recommend an action. The analyst
 alone decides run-level proceed / flag / pause.
 
-## Explain then apply
+### Explain then apply
 
 Before any corrective mutation — threshold change, seed reassignment,
 landmark move, ROI shift, override — state in plain language:
@@ -48,7 +93,7 @@ landmark move, ROI shift, override — state in plain language:
 Then apply with the smallest rerun the change requires. After execution,
 summarize what changed and what the reviewer should now see in the scene.
 
-## Plain-language feedback translation
+### Plain-language feedback handling
 
 Users describe problems in non-technical terms — screenshots, "the bone on
 the left looks wrong," "this slice is rotated." Translate that into domain
@@ -60,40 +105,20 @@ operation, propose it via explain-then-apply and ask for confirmation. Ask
 for jargon only when the visual evidence is genuinely ambiguous and you
 cannot narrow the operation without a technical disambiguator.
 
-## Reference image comparison
+### Escalation rules
 
-Each stage has reference images attached to the workflow. Use them — do
-not rely on memory or general anatomy knowledge when a workflow reference
-exists.
+- Use earliest-wrong-input correction. When a finding implicates an
+  upstream artifact, fix the earliest wrong input before redoing
+  downstream work. Do not patch downstream numbers, overlays, or labels to
+  mask an upstream problem.
+- Order: intake/orientation → segmentation/structure-ID → landmarks → ROI
+  → measurement.
+- If the wrong input lives in a prior specialist's stage, stop and surface
+  that to the analyst rather than working around it.
+- Pause with `low` confidence when evidence is ambiguous, contradictory,
+  or blocked by a missing upstream artifact.
 
-- Load only the stage-relevant references the analyst passed.
-- Compare the current scene or screenshot against each reference for the
-  visual checks the workflow defines (component count, anatomical
-  separation, edge quality, label placement, ROI position).
-- Record comparison observations in plain language in the stage report.
-- A reference mismatch is confidence evidence, not a silent override.
-
-## Screenshot capture
-
-- Capture screenshots at decision points: stage completion, before/after
-  corrections, ambiguity surfaces, low-confidence pauses.
-- Path convention: `<stage>/screenshot_<NNN>.png` with zero-padded NNN
-  incrementing within the stage. Stage names are the canonical short
-  identifiers (`segmentation`, `landmarks`, `measurements`).
-- Reference screenshots in the stage report's `artifacts.screenshots`
-  list.
-
-## Earliest-wrong-input correction
-
-When a finding implicates an upstream artifact, fix the earliest wrong
-input before redoing downstream work. Do not patch downstream numbers,
-overlays, or labels to mask an upstream problem.
-
-Order: intake/orientation → segmentation/structure-ID → landmarks → ROI →
-measurement. If the wrong input lives in a prior specialist's stage, stop
-and surface that to the analyst rather than working around it.
-
-## Structured stage report
+### Structured stage report
 
 Every specialist returns this shape to the analyst:
 

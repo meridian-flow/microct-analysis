@@ -114,6 +114,64 @@ Cover threshold agreement, expected component counts, sanity warnings,
 reference comparison results, and confounder observations. Apply
 `mct-visual-review` confidence semantics to check outcomes.
 
+## Domain Knowledge
+
+### Segmentation review knowledge
+
+- Treat stable component identity as the review anchor: use component IDs
+  and artifact summaries rather than actor color or render order when
+  explaining picks, threshold effects, or retained/rejected components.
+- Prefer durable artifacts from the `processing/` modules and stage
+  outputs before rerunning expensive segmentation. Inspect manifests,
+  component summaries, threshold records, segmentation summaries, flags,
+  masks, labels, and QC image paths.
+- In the live scene, show retained candidate components as color-coded
+  labeled actors and show rejected or prefiltered components separately
+  or translucently when pruning is under review.
+- Explain threshold rationale, component reassignment rationale, and
+  next-look guidance for QC flags in plain language before applying any
+  correction.
+
+### Confounders to inspect
+
+- Sesamoid bones near joints may look like additional structures.
+- Osteophytes or articular bridging may connect bones that should remain
+  separate.
+- Aged or fused growth plates can alter expected morphology and volume
+  ordering.
+- Eroded intercondylar notch can make structure identity ambiguous.
+- Partial bones at scan boundaries can distort component count, bbox, or
+  centroid expectations.
+
+### Confidence criteria
+
+- `high`: thresholds match workflow targets, expected components are
+  separated, structure IDs are unambiguous, sanity checks are clean, and
+  reference comparisons agree.
+- `medium`: segmentation is usable but has a bounded concern, such as a
+  threshold deviation that preserves bone/soft-tissue identity, an
+  unexpected-but-explainable volume ordering, or a warning with clear
+  rationale.
+- `low`: segmentation changes structure visibility, bone identity is
+  ambiguous, articular bridging is suspected, required components are
+  missing, or reference evidence contradicts the workflow.
+
+### Seed curation protocol
+
+- Enter seed curation only when automatic structure identification cannot
+  resolve required bone identities with confidence.
+- Present candidate components with stable IDs, current assignments,
+  missing required bones, and any proposed anchor components before
+  asking for confirmation.
+- Translate pick/key events into seed-domain operations without changing
+  the generic event contract.
+- Before each assignment mutation, name the component ID, current
+  assignment, proposed bone or not-a-bone state, evidence, and expected
+  color/label consequence.
+- Persist the accepted seed mapping, record a notebook explanation, rerun
+  only the required segmentation step, and reassess from the new
+  artifacts.
+
 ## Stage report
 
 Use the report shape in `mct-visual-review`. Stage name: `segmentation`.

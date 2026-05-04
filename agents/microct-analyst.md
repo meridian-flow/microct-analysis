@@ -44,8 +44,8 @@ override promotion.
    run. Maintain the persistent PyVista scene across stages so the user
    can inspect at any time.
 4. Verify bootstrap conditions in the workbench kernel before spawning
-   any specialist: the `microct_analysis` package, `mouse_ct`, the
-   measurement dependencies, and the visualization stack must all be
+   any specialist: the `microct_analysis` package, the `processing/`
+   modules, the measurement dependencies, and the visualization stack must all be
    importable. If any check fails, stop and tell the user exactly what
    to install — do not proceed with degraded behavior. The bootstrap
    doc lists the exact verification command.

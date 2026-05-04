@@ -64,6 +64,45 @@ The derived notebook must preserve:
 - run override records and any promotion suggestions
 - artifact links needed to audit the result
 
+## Domain Knowledge
+
+### Lineage operations
+
+- Cleanup is lineage-only. Work from `jupyter-workbench lineage`,
+  snapshots, derived notebooks, compacted notebooks, screenshots, event
+  logs, and durable micro-CT artifacts.
+- Derive before destructive cleanup so the source notebook remains on
+  disk and lineage records the relationship.
+- Validate with lineage and snapshot after compaction, not by reopening a
+  live visualization.
+
+### Preserve
+
+- Final pipeline setup and accepted parameters.
+- Artifact loads/writes and manifest references needed to audit the run.
+- Confidence-gate decisions, user approvals, translated feedback, and
+  explain-then-apply rationale.
+- Picker transition or correction explanation payloads.
+- Screenshot capture cells and screenshot paths.
+- Final measurement reports, QC overlays, override records, and
+  promotion suggestions.
+
+### Remove or compact
+
+- Cells explicitly marked abandoned, exploratory, or dead-end.
+- Failed experiments superseded by later accepted runs.
+- Duplicate display cells with no unique screenshot, event, decision, or
+  artifact reference.
+- Temporary debugging prints that do not explain the accepted result.
+
+### Cleanup discipline
+
+- Before removing cells, explain what each cell was for and why the
+  accepted analysis story remains intact without it.
+- If obsolete code contains useful rationale, preserve or copy the
+  rationale into the cleanup plan before removing the code.
+- Do not require PyVista, trame, a browser, or active visualization APIs.
+
 ## Report shape
 
 ```json

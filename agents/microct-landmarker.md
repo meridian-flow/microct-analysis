@@ -78,6 +78,44 @@ artifacts.
 - Compare ROI overlay position against the workflow's ROI reference
   images and any textual acceptance checks.
 
+## Domain Knowledge
+
+### Landmark definitions and placement rules
+
+- Use workflow-defined landmark IDs as the authority. Do not invent
+  landmarks, protocol distances, or alternate anatomy names.
+- Record each accepted landmark in voxel and physical coordinates, tied
+  to the stable component or structure it belongs to.
+- Place landmarks on the visible anatomical feature specified by the
+  workflow and reference image, not on a smoothed display artifact or a
+  convenient render color.
+- When multiple plausible placements remain, preserve the competing
+  interpretation in evidence and report `low` rather than choosing
+  silently.
+- If a landmark correction changes ROI boundaries or measurement inputs,
+  fix the landmark first and regenerate downstream artifacts.
+
+### Femoral surface features
+
+- Distinguish cortical surface edges, condylar contours, intercondylar
+  notch features, growth-plate-relative regions, and articular surfaces
+  using the workflow references for this study.
+- Watch for osteophytes, erosions, and fused or aged growth plates that
+  can shift the apparent surface feature away from the canonical visual
+  landmark.
+- Explain orientation corrections by naming the anatomical direction and
+  the volume axis or view that should change after rerendering.
+
+### Tibial slice boundaries
+
+- Treat tibial slice boundaries as protocol-defined planes derived from
+  accepted landmarks, orientation frame, and voxel spacing.
+- Apply proximal/distal offsets, slice counts, and growth-plate-relative
+  positions exactly as specified by the workflow.
+- If boundary placement looks wrong, determine whether the earliest wrong
+  input is orientation, landmark position, or ROI geometry before
+  changing ROI masks.
+
 ## Stage report
 
 Use the report shape in `mct-visual-review`. Stage name: `landmarks`.

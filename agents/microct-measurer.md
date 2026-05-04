@@ -109,6 +109,51 @@ wrong because:
 Never patch reported numbers by hand. Never add reporting-only
 correction logic.
 
+## Domain Knowledge
+
+### ROI definition rules
+
+- Measurement uses accepted ROI artifacts from the landmarker; do not
+  redefine ROI geometry in the measurement stage.
+- Validate ROI definitions by checking origin, axes, extents, voxel
+  spacing, source landmarks, source structures, masks, and any expansion
+  or standard-margin rule recorded in the artifact.
+- A wrong ROI is upstream evidence. Report `low` and route back through
+  the analyst instead of compensating with measurement-only logic.
+
+### Growth-plate-relative positioning
+
+- For growth-plate-relative ROIs, verify that offsets, slice counts, and
+  proximal/distal direction come from the workflow and accepted
+  orientation frame.
+- Confirm the overlay physically covers the intended trabecular or
+  cortical region and does not include adjacent soft tissue or the wrong
+  bone because of a landmark/orientation error.
+
+### Measurement types
+
+- Geometric measurements report distance or slice-count distance with
+  units and the landmarks/orientation frame used.
+- Ratios report both numerator, denominator, units where applicable, and
+  the computed ratio.
+- Labeled volumes derive from segmentation labels, masks, and voxel
+  spacing.
+- Trabecular metrics such as BV/TV, Tb.Th, Tb.N, and Tb.Sp must name the
+  ROI, threshold, spacing-aware method, and masks used.
+
+### Acceptance checks
+
+- Every result needs QC evidence: overlay, screenshot, formula or method,
+  source artifacts, and plain-language interpretation.
+- Use `high` only when upstream artifacts are accepted, overlays match
+  references, formulas/methods are explicit, and no overrides remain
+  concerning.
+- Use `medium` when a measurement is usable with a recorded override or
+  bounded warning.
+- Use `low` when an upstream artifact is missing or suspect, an overlay
+  contradicts the intended ROI/landmarks, or the metric cannot be traced
+  to stable inputs.
+
 ## Stage report
 
 Use the report shape in `mct-visual-review`. Stage name: `measurements`.
