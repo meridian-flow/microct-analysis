@@ -6,7 +6,11 @@ import json
 from pathlib import Path
 from typing import Any
 
+import numpy as np
+
 from microct_analysis.domain.artifact_contracts import screenshot_path
+from microct_analysis.processing.morphology import isolate_trabecular_roi
+from microct_analysis.processing.types import Thresholds
 
 
 def run_roi(
@@ -25,6 +29,8 @@ def run_roi(
     orientation_frame = _load_json(landmark_artifacts.get("orientation_frame"))
     landmarks = {item["id"]: item for item in positions.get("landmarks", [])}
     spacing = _triple(positions.get("spacing", (1.0, 1.0, 1.0)))
+    labels = _load_array(segmentation_artifacts.get("labels"))
+    intensity = _load_array(segmentation_artifacts.get("intensity") or segmentation_artifacts.get("filtered"))
 
     roi_entries: list[dict[str, Any]] = []
     roi_masks: dict[str, str] = {}
@@ -32,7 +38,13 @@ def run_roi(
         roi = compute_roi_boundary(definition, landmarks, spacing)
         roi_entries.append(roi)
         mask_path = masks_root / f"{roi['id']}.json"
-        _write_json(mask_path, {"roi_id": roi["id"], "bounds_voxel": roi["bounds_voxel"], "source_labels": segmentation_artifacts})
+        mask = _roi_mask_from_definition(definition, roi, labels, intensity, spacing)
+        if mask is None:
+            payload: Any = {"roi_id": roi["id"], "bounds_voxel": roi["bounds_voxel"], "source_labels": segmentation_artifacts}
+        else:
+            payload = mask.astype(bool).tolist()
+            roi["mask_source"] = "trabecular_morphology" if _is_trabecular_roi(definition) else "bounds_voxel"
+        _write_json(mask_path, payload)
         roi_masks[roi["id"]] = str(mask_path)
 
     payload = {
@@ -133,3 +145,53 @@ def _triple(raw: Any) -> tuple[float, float, float]:
 
 def _write_json(path: Path, payload: Any) -> None:
     path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n")
+
+
+def _roi_mask_from_definition(
+    definition: dict[str, Any],
+    roi: dict[str, Any],
+    labels: np.ndarray | None,
+    intensity: np.ndarray | None,
+    spacing: tuple[float, float, float],
+) -> np.ndarray | None:
+    if labels is None:
+        return None
+    if _is_trabecular_roi(definition):
+        if intensity is None:
+            intensity = labels
+        thresholds = Thresholds(marrow_bone=int(definition.get("marrow_bone_threshold", definition.get("threshold", 270))))
+        return isolate_trabecular_roi(labels > 0, intensity, thresholds, str(definition.get("compartment", "total")))
+    return _bounds_mask(labels.shape, roi["bounds_voxel"])
+
+
+def _is_trabecular_roi(definition: dict[str, Any]) -> bool:
+    raw = " ".join(str(definition.get(field, "")) for field in ("type", "kind", "method", "analysis"))
+    return "trabecular" in raw.lower()
+
+
+def _bounds_mask(shape: tuple[int, ...], bounds_voxel: list[list[float]]) -> np.ndarray:
+    mask = np.zeros(shape, dtype=bool)
+    slices = []
+    for axis, bounds in enumerate(bounds_voxel[: len(shape)]):
+        start = max(0, int(np.floor(bounds[0])))
+        stop = min(shape[axis], int(np.ceil(bounds[1])))
+        slices.append(slice(start, stop))
+    while len(slices) < len(shape):
+        slices.append(slice(None))
+    mask[tuple(slices)] = True
+    return mask
+
+
+def _load_array(path: str | None) -> np.ndarray | None:
+    if not path or not Path(path).exists():
+        return None
+    file_path = Path(path)
+    if file_path.suffix == ".npy":
+        return np.load(file_path)
+    if file_path.suffix == ".npz":
+        data = np.load(file_path)
+        return data[data.files[0]]
+    if file_path.suffix == ".json":
+        payload = json.loads(file_path.read_text())
+        return np.asarray(payload) if isinstance(payload, list) else None
+    return None

@@ -18,6 +18,7 @@ class MeasurementSpec:
     points: list[str] | None = None
     boundaries: list[str] | None = None
     slice_selection: str | None = None
+    slice_thickness_mm: float | None = None
     numerator: str | None = None
     denominator: str | None = None
     roi: str | None = None

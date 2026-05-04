@@ -20,6 +20,8 @@ def results_to_json(results: list[MeasurementResult], workflow_id: str, session_
                 "value": result.value,
                 "unit": result.unit,
                 "kind": result.spec.kind,
+                "domain": result.spec.domain,
+                "method": result.inputs.get("method") or result.spec.algorithm,
                 "spec": asdict(result.spec),
                 "inputs": result.inputs,
                 "qc_evidence": result.qc_evidence,
@@ -49,6 +51,10 @@ def build_qc_payload(results: list[MeasurementResult]) -> dict[str, Any]:
                 "frame": result.spec.frame,
                 "projection": result.spec.projection,
                 "roi": result.spec.roi,
+                "domain": result.spec.domain,
+                "method": result.inputs.get("method") or result.spec.algorithm,
+                "slice_count": result.inputs.get("slice_count"),
+                "exact_multiple": result.inputs.get("exact_multiple"),
             }
             for result in results
         ]

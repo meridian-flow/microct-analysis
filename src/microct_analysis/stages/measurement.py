@@ -10,7 +10,15 @@ from typing import Any
 import numpy as np
 
 from microct_analysis.domain.artifact_contracts import screenshot_path
-from microct_analysis.measurements.geometry import compute_distance, compute_ratio, compute_slice_count
+from microct_analysis.measurements.geometry import (
+    compute_boundary_slice_count,
+    compute_distance,
+    compute_frontal_projected_width,
+    compute_ratio,
+    compute_slice_count,
+    compute_slice_distance,
+    compute_surface_distance,
+)
 from microct_analysis.measurements.models import MeasurementResult, OverrideRecord
 from microct_analysis.measurements.reporting import build_qc_payload, results_to_json, results_to_markdown
 from microct_analysis.measurements.trabecular import compute_trabecular_metrics
@@ -47,8 +55,16 @@ def run_measurement(
         raw = raw_by_name.get(spec.name, {})
         if spec.kind == "distance":
             result = compute_distance(spec, landmarks, spacing)
+        elif spec.kind == "surface_distance":
+            result = compute_surface_distance(spec, landmarks, spacing)
+        elif spec.kind == "slice_distance":
+            result = compute_slice_distance(spec, landmarks, spacing)
         elif spec.kind == "slice_count":
             result = compute_slice_count(spec, landmarks, spacing)
+        elif spec.kind == "boundary_slice_count":
+            result = compute_boundary_slice_count(spec, landmarks, spacing)
+        elif spec.kind == "frontal_projected_width":
+            result = compute_frontal_projected_width(spec, landmarks, spacing)
         elif spec.kind == "ratio":
             result = compute_ratio(spec, by_name)
         elif spec.kind == "volume":

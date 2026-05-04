@@ -12,6 +12,7 @@ _ALLOWED_KINDS = {
     "distance",
     "surface_distance",
     "slice_distance",
+    "frontal_projected_width",
     "ratio",
     "slice_count",
     "boundary_slice_count",
@@ -40,6 +41,7 @@ def compile_measurement_specs(workflow: dict[str, Any]) -> list[MeasurementSpec]
                 points=_optional_str_list(item, "points"),
                 boundaries=_optional_str_list(item, "boundaries"),
                 slice_selection=_optional_str(item, "slice_selection"),
+                slice_thickness_mm=_optional_float(item, "slice_thickness_mm"),
                 numerator=_optional_str(item, "numerator"),
                 denominator=_optional_str(item, "denominator"),
                 roi=_optional_str(item, "roi"),
@@ -61,6 +63,11 @@ def _required_str(item: dict[str, Any], field: str) -> str:
 def _optional_str(item: dict[str, Any], field: str) -> str | None:
     value = item.get(field)
     return str(value) if value is not None else None
+
+
+def _optional_float(item: dict[str, Any], field: str) -> float | None:
+    value = item.get(field)
+    return float(value) if value is not None else None
 
 
 def _optional_domain(item: dict[str, Any]) -> str | None:
